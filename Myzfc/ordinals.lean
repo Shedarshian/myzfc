@@ -221,7 +221,7 @@ by
     have g := class_belong_is_set f;
     exact On_proper_class g;
 
-theorem ordinal_class_transitive (A : Class) (h : A s⊆ On) (ht : Tr(A)) :
+theorem ordinal_class_transitive [has_belong α] (A : α) (h : A s⊆ On) (ht : Tr(A)) :
   Ord(A) :=
 by
   constructor; · assumption;
@@ -243,11 +243,15 @@ instance ordinal.to_has_belong : has_belong ordinal :=
 ⟩
 
 theorem ord_class {a : set} : Ord(a) ↔ Ord(a.to_Class) := Iff.rfl
+theorem ord_class_has_belong [has_belong α] {a : α} : Ord(a) ↔ Ord(has_belong.to_Class a)
+  := by
+  unfold is_ordinal is_transitive subseteq; simp only [←set_belong_to_class];
 
 def ordinal.belonged_to {β : Type _} [s : has_belong β] (a : ordinal) (b : β) :
 Prop := has_belong.belong b a.val
 instance ordinal.to_has_belonged_to : has_belonged_to ordinal :=
 ⟨ @ordinal.belonged_to ⟩
+theorem ord_belonged_to [has_belong α] {A : α} {α : ordinal} : α ∈ A ↔ α.val ∈ A := by rfl;
 
 theorem ord_element_ord (A : ordinal) (a : set) : a ∈ A → Ord(a) :=
   ord_element_ord' A.val a A.prop
@@ -289,16 +293,17 @@ noncomputable instance ordinal.to_has_binary_union : has_binary_union ordinal :=
   by { intros; erw [union_set_is_union]; rfl; }
 ⟩
 
-noncomputable instance ordinal.to_has_intersection : has_intersection ordinal ordinal :=
-⟨
-  fun x y => ⟨ x.val ∩ y.val, by {
+theorem ord_inter [has_belong α] [has_belong β] [has_intersection α β]
+  {A : α} {B : β} (h1 : Ord(A)) (h2 : Ord(B)) : Ord(A ∩ B) := by
     constructor <;> intros x1 hx y1 hy <;>
     erw [has_intersection.proof_intersection] at *;
     · rcases hx with ⟨hx1, hx2⟩;
-      use x.prop.1 _ hx1 _ hy;
-      use y.prop.1 _ hx2 _ hy;
-    exact x.prop.2 _ hx.1 _ hy.1;
-  }
+      use h1.1 _ hx1 _ hy;
+      use h2.1 _ hx2 _ hy;
+    exact h1.2 _ hx.1 _ hy.1;
+noncomputable instance ordinal.to_has_intersection : has_intersection ordinal ordinal :=
+⟨
+  fun x y => ⟨ x.val ∩ y.val, ord_inter x.prop y.prop
   ⟩, by {
     intros; erw [@has_intersection.proof_intersection set set]; rfl;
   }
@@ -507,11 +512,16 @@ by
   | inl => apply ord_lt_trans; assumption';
   | inr h2 => rw [←h2]; assumption';
 
+theorem ord_succ_belong_le_iff {α β : ordinal} : α < β ↔ succ α ≤ β :=
+  Iff.intro ord_succ_belong_le (ord_lt_le_trans ord_lt_succ)
 theorem ord_succ_le_succ {α β : ordinal} : α ≤ β → succ α ≤ succ β :=
   fun h => ord_succ_belong_le (ord_le_lt_trans h ord_lt_succ)
-
 theorem ord_succ_lt_succ {α β : ordinal} : α < β → succ α < succ β :=
   fun h => ord_le_lt_trans (ord_succ_belong_le h) ord_lt_succ
+theorem ord_succ_le_succ_iff {α β : ordinal} : α ≤ β ↔ succ α ≤ succ β :=
+  Iff.intro ord_succ_le_succ (fun h ↦ ord_lt_succ_iff.1 (ord_succ_belong_le_iff.2 h))
+theorem ord_succ_lt_succ_iff {α β : ordinal} : α < β ↔ succ α < succ β :=
+  Iff.intro ord_succ_lt_succ (fun h ↦ ord_succ_belong_le_iff.2 (ord_lt_succ_iff.1 h))
 
 noncomputable def o0 : ordinal := ⟨s0, by {
   constructor <;> intros x hx y hy <;>
@@ -522,14 +532,16 @@ theorem o0_eq_s0 : o0.val = s0 := rfl
 def K1 : Class := fun a => ∃ h : Ord(a), (a = s0 ∨ ∃ β : ordinal, ⟨a, h⟩ = (succ β))
 def K2 : Class := On - K1
 axiom omega_s : set
+theorem k1 {α : ordinal} : α ∈ K1 → (α = o0 ∨ ∃ β : ordinal, α = succ β) := by
+  intro ⟨ho, h⟩;
+  cases h with
+  | inl h => left; exact Subtype.ext h;
+  | inr h => right; exact h;
 theorem k12 (α : ordinal) : (α = o0 ∨ ∃ β : ordinal, α = succ β) ∨ α.val ∈ K2 := by
   unfold K2; unfold_projs; simp only;
   conv => rhs; rw [proof_in_Class, And.comm];
   by_cases h : ↑α ∈ K1;
-  · left; rcases h with ⟨ho, h⟩;
-    cases h with
-    | inl h => left; exact Subtype.ext h;
-    | inr h => right; exact h;
+  · left; exact k1 h;
   right; constructor; · assumption;
   exact α.prop;
 theorem ord_in_k2 {α : ordinal} :
@@ -1232,14 +1244,11 @@ theorem ord_k2_union_eq_self {α : ordinal} (h : α ∈ K2) : ∪(α.val) = α.v
   have ha := ord_element_ord' α a α.prop h1;
   use succ_set a; use self_belong_succ; exact @ord_k2_succ_in α ⟨a, ha⟩ h h1;
 
-theorem ord_union_val {α : ordinal} : ∪(α).val = ∪(α).val := by rfl
-
 theorem ord_union_le_sup {β : ordinal} {f : ordinal → ordinal} :
   ∀ α o∈ β, f α ≤ ⋃(γ oo∈ β, f γ) := by
   intro α ha x hx;
-  unfold belong has_belonged_to.belonged_to set.to_has_belonged_to id;
-  unfold set.belonged_to has_belong.belong ordinal.to_has_belong id;
-  simp only; erw [←ordinal_union_axiom, has_union.proof_union];
+  convert_to x ∈ ⋃(γ oo∈ β, f γ).val; · rfl;
+  erw [←ordinal_union_axiom, has_union.proof_union];
   use (f α).val; use hx; rw [ordinal_replacement_axiom]; · use α;
   simp only [and_imp, forall_eq_apply_imp_iff, imp_self, implies_true];
 
@@ -1658,6 +1667,167 @@ theorem ord_isom_ord_class {A G : Class} (h1 : ¬A.is_set) (h2 : A s⊆ On)
     (A - W(x)) ∩ E⁻¹[s{y}] = s0) : Isom (trans_rec_class G) E E On A := by
   refine ord_isom_wfwo_class h1 ?_ hg; use E_well_founded; exact E_well_order_ord_class h2;
 
+theorem eqv_minimal {A B R F X : Class} {y x1 : set} (h : F f: A -1-1onto->B)
+  (hx : X s⊆ B ∧ X ≠ s0) (hy1 : s⟨x1, y⟩ ∈ F⁻¹ Γ X)
+  (hy2 : F⁻¹[X] ∩ R⁻¹[(s{y} : Class)] = s0) :
+  x1 ∈ X ∧ X ∩ ((((F⁻¹) ∘ R) ∘ F)⁻¹[(s{x1} : Class)]) = s0 := by
+  simp only [pair_in_restrict] at hy1; use hy1.2;
+  have h0 : (s0 : Class) = F[(s0 : Class)];
+  · rw [←extensionality_belong]; intro x; rw [has_function.proof_range];
+    constructor;
+    · intro hx; rw [←set_belong_set_to_class] at hx; exact False.elim (empty_false.1 hx);
+    intro hx; rcases hx with ⟨y, hx⟩; rw [pair_in_restrict] at hx;
+    rw [←set_belong_set_to_class] at hx; exact False.elim (empty_false.1 hx.2);
+  rw [h0, ←hy2, image_intersection h.1.1.2.2];
+  conv => rhs; lhs; rhs; lhs; rw [←rel_inv_inv_eq h.1.1.1];
+  rw [inverse_image (inv_unitary2 h.1.1.2)]; swap;
+  · rw [domain_inv, h.2]; use hx.1;
+  congr 1; simp only [congr_inv, congr_image, rel_inv_inv_eq h.1.1.1];
+  congr; rw [←extensionality_belong]; intro a; rw [←set_belong_set_to_class];
+  rw [has_function.proof_range];
+  simp only [pair_in_restrict, pair_in_inverse]; constructor;
+  · intro ha; rcases ha with ⟨z, hz1, hz2⟩;
+    rw [←set_belong_set_to_class, element_in_one_element_set] at hz2; subst z;
+    rw [←pair_in_inverse] at hz1;
+    have hz := h.1.1.2.2 _ _ _ ⟨hz1, hy1.1⟩; subst a; simp;
+  rw [pair_in_inverse] at hy1; intro ha; rw [element_in_one_element_set] at ha;
+  subst a; use x1; use hy1.1; rw [←set_belong_set_to_class]; simp;
+theorem ord_isom_ord_eq [has_belong α] [has_intersection α Class] [has_value α]
+(F A B : α) : Ord(A) → Ord(B) → Isom F E E A B → A = B := by
+  intro ha hb hf; rcases hf with ⟨⟨⟨hf1, hf2⟩, hf3⟩, hf4⟩;
+  suffices h : ∀ α o∈ A, F[[α.val]] = α.val;
+  · rw [hf2, ←hf3]; rw [←extensionality_belong]; intro a;
+    simp only [has_function.proof_domain, has_function.proof_range]
+    constructor <;> intro ⟨x, ht⟩ <;> use x;
+    all_goals suffices _ : x = a; subst x; assumption;
+    · have ha1 := (has_function.proof_domain _).2 ⟨_, ht⟩; rw [←hf2] at ha1;
+      let b : ordinal := ⟨a, ord_element_ord' A _ ha ha1⟩; have h1 := h b ha1;
+      have hv := value_func hf1.2.1 ht; rw [←hv]; exact h1;
+    · have ha1 := (has_function.proof_domain _).2 ⟨_, ht⟩; rw [←hf2] at ha1;
+      let b : ordinal := ⟨x, ord_element_ord' A _ ha ha1⟩; have h1 := h b ha1;
+      have hv := value_func hf1.2.1 ht; rw [←hv]; symm; exact h1;
+  intro α; apply ordinal.induction α; intro β ih hβA;
+  have hβD : β.val ∈ D(F);
+  · rw [←hf2]; exact hβA;
+  have hβp := value_func2 hf1.2.1 hβD;
+  have hFβB : F[[β.val]] ∈ B;
+  · rw [←hf3, has_function.proof_range]; exact ⟨β.val, hβp⟩;
+  let δ : ordinal := ⟨F[[β.val]], ord_element_ord' B _ hb hFβB⟩;
+  cases @ord_total δ β with
+  | inl hlt =>
+    have hδA : δ.val ∈ A;
+    · exact ha.1 β.val hβA δ.val hlt;
+    have hδD : δ.val ∈ D(F);
+    · rw [←hf2]; exact hδA;
+    have hδp := value_func2 hf1.2.1 hδD;
+    have hδv := ih δ hlt hδA;
+    rw [hδv] at hδp;
+    have hβp' := hβp; have hδp' := hδp;
+    rw [←pair_in_inverse] at hβp' hδp';
+    have heq := hf1.2.2 _ _ _ ⟨hβp', hδp'⟩;
+    exact Eq.symm heq;
+  | inr hrest => cases hrest with
+    | inl heq =>
+      exact congrArg Subtype.val heq;
+    | inr hgt =>
+      have hβB : β.val ∈ B;
+      · exact hb.1 δ.val hFβB β.val hgt;
+      rw [←hf3, has_function.proof_range] at hβB;
+      rcases hβB with ⟨a, hap⟩;
+      have haA : a ∈ A;
+      · have haD := (has_function.proof_domain _).2 ⟨_, hap⟩;
+        rw [←hf2] at haD; exact haD;
+      let γ : ordinal := ⟨a, ord_element_ord' A _ ha haA⟩;
+      have hav := value_func hf1.2.1 hap;
+      have hγlt : γ < β;
+      · have htmp := (hf4 γ.val haA β.val hβA).2;
+        have hE : E& γ.val β.val;
+        · apply htmp; simp only [E_simp]; rw [hav]; exact hgt;
+        exact ord_belong.2 (E_simp.1 hE);
+      have hγv := ih γ hγlt haA;
+      rw [hγv] at hav;
+      have hγeq : γ = β := Subtype.ext hav;
+      rw [hγeq] at hγlt; exfalso; exact belong_to_self hγlt;
+theorem ord_isom_739 [has_belong α]
+  {A B C F1 F2 : set} {R : α} (ha : Ord(A)) (hb : Ord(B))
+  (h1 : Isom F1 E R A C) (h2 : Isom F2 E R B C) : A = B := by
+  refine ord_isom_ord_eq (F1 ∘ (F2⁻¹)) A B ha hb ?_;
+  rcases h1 with ⟨⟨⟨hF1, hD1⟩, hW1⟩, hO1⟩;
+  rcases h2 with ⟨⟨⟨hF2, hD2⟩, hW2⟩, hO2⟩;
+  constructor;
+  · constructor;
+    · constructor;
+      · exact ⟨congr_relation, congr_unitary2 hF1.2 (inv_unitary2 hF2.2)⟩;
+      · rw [←extensionality_belong]; intro x; rw [has_function.proof_domain];
+        constructor;
+        · intro hx; rw [hD1, has_function.proof_domain] at hx;
+          rcases hx with ⟨z, hz⟩;
+          have hzC : z ∈ C;
+          · rw [←hW1, has_function.proof_range]; exact ⟨x, hz⟩;
+          have hzD : z ∈ D(F2⁻¹);
+          · rw [domain_inv, hW2]; exact hzC;
+          rw [has_function.proof_domain] at hzD;
+          rcases hzD with ⟨y, hy⟩;
+          use y; rw [pair_in_congr]; exact ⟨z, hz, hy⟩;
+        · intro hx; rcases hx with ⟨y, hx⟩; rw [pair_in_congr] at hx;
+          rcases hx with ⟨z, hz1, hz2⟩;
+          rw [hD1, has_function.proof_domain]; exact ⟨z, hz1⟩;
+    · rw [←extensionality_belong]; intro y; rw [has_function.proof_range];
+      constructor;
+      · intro hy; rcases hy with ⟨x, hy⟩; rw [pair_in_congr] at hy;
+        rcases hy with ⟨z, hz1, hz2⟩;
+        rw [pair_in_inverse] at hz2;
+        rw [hD2, has_function.proof_domain];
+        exact ⟨z, hz2⟩;
+      · intro hy; rw [hD2, has_function.proof_domain] at hy;
+        rcases hy with ⟨z, hyz⟩;
+        have hzC : z ∈ C;
+        · rw [←hW2, has_function.proof_range]; exact ⟨y, hyz⟩;
+        rw [←hW1, has_function.proof_range] at hzC;
+        rcases hzC with ⟨x, hxz⟩;
+        use x; rw [pair_in_congr]; use z; constructor; · exact hxz;
+        rw [pair_in_inverse]; exact hyz;
+  · intro x hx y hy;
+    have hCompUn2 := congr_unitary2 hF1.2 (inv_unitary2 hF2.2);
+    have hxD1 : x ∈ D(F1); · rw [←hD1]; exact hx;
+    have hyD1 : y ∈ D(F1); · rw [←hD1]; exact hy;
+    have hxF1p := value_func2 hF1.2.1 hxD1;
+    have hyF1p := value_func2 hF1.2.1 hyD1;
+    have hxC : F1[[x]] ∈ C;
+    · rw [←hW1, has_function.proof_range]; exact ⟨x, hxF1p⟩;
+    have hyC : F1[[y]] ∈ C;
+    · rw [←hW1, has_function.proof_range]; exact ⟨y, hyF1p⟩;
+    have hxDinv : F1[[x]] ∈ D(F2⁻¹);
+    · rw [domain_inv, hW2]; exact hxC;
+    have hyDinv : F1[[y]] ∈ D(F2⁻¹);
+    · rw [domain_inv, hW2]; exact hyC;
+    have hxinv := value_func2 (inv_unitary2 hF2.2).1 hxDinv;
+    have hyinv := value_func2 (inv_unitary2 hF2.2).1 hyDinv;
+    have hxcomp : s⟨x, (F2⁻¹)[[F1[[x]]]]⟩ ∈ F1 ∘ (F2⁻¹);
+    · rw [pair_in_congr]; exact ⟨F1[[x]], hxF1p, hxinv⟩;
+    have hycomp : s⟨y, (F2⁻¹)[[F1[[y]]]]⟩ ∈ F1 ∘ (F2⁻¹);
+    · rw [pair_in_congr]; exact ⟨F1[[y]], hyF1p, hyinv⟩;
+    have hcx := value_func hCompUn2.1 hxcomp;
+    have hcy := value_func hCompUn2.1 hycomp;
+    rw [hcx, hcy];
+    have hxF2 := hxinv; have hyF2 := hyinv;
+    rw [pair_in_inverse] at hxF2 hyF2;
+    have hxB : (F2⁻¹)[[F1[[x]]]] ∈ B;
+    · rw [hD2, has_function.proof_domain]; exact ⟨F1[[x]], hxF2⟩;
+    have hyB : (F2⁻¹)[[F1[[y]]]] ∈ B;
+    · rw [hD2, has_function.proof_domain]; exact ⟨F1[[y]], hyF2⟩;
+    have hxv := value_func hF2.2.1 hxF2;
+    have hyv := value_func hF2.2.1 hyF2;
+    constructor;
+    · intro hxy;
+      have hR := (hO1 x hx y hy).1 hxy;
+      have hE := (hO2 _ hxB _ hyB).2 ?_;
+      · exact hE;
+      rwa [hxv, hyv];
+    intro hxy;
+    have hR := (hO2 _ hxB _ hyB).1 hxy;
+    rw [hxv, hyv] at hR;
+    exact (hO1 x hx y hy).2 hR;
 theorem ord_isom_we_set [has_belong α] [has_intersection α Class] [has_value α]
   [has_intersection set α] [has_intersection Class α] {a : set} {R : α}
   (h : is_well_order R a) :
@@ -1667,8 +1837,213 @@ theorem ord_isom_we_set [has_belong α] [has_intersection α Class] [has_value �
   have f1 := @transfinite_recursion1 G;
   have f2 := fun α ↦ @transfinite_recursion2 G α (restrict_is_set f1.1);
   have h2 := @rec_choose_set a G (fun α ↦ restrict_is_set f1.1);
-  have t1 := @th7_482 a.to_Class R G ⟨⟨h.1, well_founded_on_set⟩, h⟩;
+  have t1 := @th7_482 _ _ _ _ _ _ R a.to_Class G ⟨⟨h.1, well_founded_on_set⟩, h⟩ rfl;
   have h3 : _;
-  · apply h2; intro α ha;
+  · apply h2; intro α ha; have hw : W(trans_rec_class G Γ α) =
+      W((trans_rec_class G Γ α).to_set (restrict_is_set f1.1)).to_Class;
+    · rw [class_to_set_range, Class_to_set_to_Class];
+    rw [hw] at ha; rw [hw]; exact (t1 _ ha).1;
+  rcases h3 with ⟨α, h3, h4, h5⟩;
+  let Fα : set := (trans_rec_class G Γ α).to_set (restrict_is_set f1.1);
+  have hFα : Isom Fα E R α.val a;
+  · unfold Fα; constructor;
+    constructor;
+    · use class_to_set_func2.2 ⟨(restrict_is_func f1.1).1, h5⟩;
+      have hc : has_belong.to_Class α s⊆ On;
+      · intro x h; exact ord_element_ord' _ x α.prop h;
+      have hc2 : has_belong.to_Class α = has_belong.to_Class α.val := rfl;
+      conv =>
+        rhs; rw [class_to_set_domain]; lhs; rw [domain_restrict];
+        rw [←f1.2, intersection_to_class_has_belong, intersection_comm];
+        rw [←subseteq_iff_eq_intersection.1 hc, hc2];
+      rw [set_to_Class_to_set_has_belong];
+    · rw [class_to_set_range]; conv => lhs; lhs; rw [h4];
+      exact set_to_Class_to_set _;
+    intro x' hx2 y' hy; let x : ordinal := ⟨x', ord_element_ord _ _ hx2⟩;
+    let y : ordinal := ⟨y', ord_element_ord _ _ hy⟩;
+    simp only [E_simp]; suffices ht : ∀ x y : ordinal, x ∈ α → y ∈ α → x < y →
+      R& ((trans_rec_class G)[[x.val]]) ((trans_rec_class G)[[y.val]]);
+    · constructor;
+      · simp only at ht; simp only [class_to_set_value];
+        rw [restrict_value, restrict_value]; · exact ht x y hx2 hy;
+        assumption';
+      have h3m : ∀ α : ordinal, (trans_rec_class G) Γ α =
+        (trans_rec_class G) Γ α.val := fun _ ↦ rfl;
+      conv at h3 =>
+        ext; rhs; rw [h3m, ←Class_to_set_to_Class (restrict_is_set f1.1)];
+        rw [set_to_class_range];
+      have ht := ht y x hy hx2; intro ht1; cases @ord_total x y with
+      | inl => assumption;
+      | inr ht2 => cases ht2 with
+        | inl ht2 =>
+          have ht2 : x' = y'; · exact Subtype.coe_inj.2 ht2;
+          subst y'; exfalso;
+          refine foundational_belong_to_self h.1 _ ?_ ht1;
+          · rw [class_to_set_value, restrict_value, f2 x]; · exact (t1 _ (h3 _ hy)).1.1;
+            · assumption;
+        | inr ht2 =>
+          have ht := ht ht2; simp only at ht; exfalso; rw [class_to_set_value,
+            restrict_value, class_to_set_value, restrict_value] at ht1; assumption';
+          refine foundational_belong_to_2 h.1 _ ?_ _ ?_ ht1 ht;
+          · rw [f2 x]; exact (t1 _ (h3 _ hx2)).1.1;
+          rw [f2 y]; exact (t1 _ (h3 _ hy)).1.1;
+    intro x y hxα hyα hxy;
+    have hy1 : a.to_Class - (trans_rec_class G)[y.val] s⊆
+      a.to_Class - (trans_rec_class G)[x.val];
+    · intro a; simp only [class_sub_is_sub, has_function.proof_range, pair_in_restrict,
+      not_exists, not_and, and_imp];
+      intro ha1 ha2; use ha1; intro z hz hx3; apply ha2 z hz;
+      exact y.prop.1 x.val hxy z hx3;
+    have h6 := fun α' ha ↦ wfwo_class_minimal ⟨⟨h.1, well_founded_on_set⟩, h⟩
+      (fun x ↦ And.left) (h3 α' ha);
+    conv at h6 => ext; ext; rhs; ext; rw [proof_in_Class];
+    have h6t : ∀ α : ordinal, (trans_rec_class G)[α.val] =
+      W((trans_rec_class G Γ α.val).to_set (restrict_is_set f1.1)).to_Class;
+    · intro α; rw [class_to_set_range, Class_to_set_to_Class];
+    have hx : ∀ α' o∈ α, G[[(trans_rec_class G Γ α'.val).to_set
+      (restrict_is_set f1.1)]] ∈ a.to_Class - (trans_rec_class G)[α'.val] ∧
+      (a.to_Class - (trans_rec_class G)[α'.val]) ∩
+      R⁻¹[s{G[[(trans_rec_class G Γ α'.val).to_set (restrict_is_set f1.1)]]}] = s0;
+    · intro α' hα; rcases h6 α' hα with ⟨x, h61, h62⟩;
+      have h6tt : ∀ α : ordinal, trans_rec_class G Γ α.val = trans_rec_class G Γ α := fun _ ↦ rfl;
+      rw [←h6tt, h6t α'] at h61 h62;
+      have hx1 : s⟨(trans_rec_class G Γ α'.val).to_set (restrict_is_set f1.1), x⟩ ∈ G;
+      · conv => rhs; unfold G;
+        rw [proof_in_Class]; simp only [ordered_pair_eq_iff, ↓existsAndEq,
+          and_true, exists_eq_left'];
+        exact ⟨h61, h62⟩;
+      have hg1 := th7_481 ⟨⟨h.1, well_founded_on_set⟩, h⟩ rfl;
+      have hxv := value_func hg1.2 hx1;
+      change G[[(trans_rec_class G Γ α'.val).to_set (restrict_is_set f1.1)]] = x at hxv;
+      rw [hxv, h6t]; exact ⟨h61, h62⟩;
+    have hy2 := hy1 _ (hx y hyα).1; have hy3 := (hx x hxα).2;
+    rw [well_found_eqv_class] at hy3; have hy3 := hy3 _ hy2;
+    have hy4 := (hx x hxα).1; simp only [←f2] at hy3 hy2 hy4;
+    cases h.2 _ hy4.1 _ hy2.1 with
+    | inl => assumption;
+    | inr hy5 => cases hy5 with
+      | inl hy5 =>
+        have hox : x ∈ On := x.prop; have hoy : y ∈ On := y.prop;
+        rw [f1.2] at hox hoy;
+        have hyx := value_func2 f1.1.2 hox; have hyy := value_func2 f1.1.2 hoy;
+        rw [hy5] at hyx;
+        have hyx' : s⟨trans_rec_class G[[y.val]], x.val⟩ ∈ (trans_rec_class G Γ α)⁻¹;
+        · rw [pair_in_inverse, pair_in_restrict]; exact ⟨hyx, hxα⟩;
+        have hyy' : s⟨trans_rec_class G[[y.val]], y.val⟩ ∈ (trans_rec_class G Γ α)⁻¹;
+        · rw [pair_in_inverse, pair_in_restrict]; exact ⟨hyy, hyα⟩;
+        have hye := Subtype.ext (h5.2 _ _ _ ⟨hyx', hyy'⟩); subst y;
+        exfalso; exact belong_to_self hxy;
+      | inr hy5 => exfalso; exact hy3 hy5;
+  use α; constructor;
+  · exact ⟨Fα, hFα⟩;
+  intro β hβ; rcases hβ with ⟨f, hf⟩;
+  apply Subtype.ext; exact ord_isom_739 β.prop α.prop hf hFα;
+
+def ord_func [has_belong α] [has_intersection α Class] [has_function α] (G : α) :=
+  Fnc(G) ∧ Ord(D(G)) ∧ W(G) s⊆ On
+def strict_monotone [has_belong α] [has_intersection α Class] [has_value α] (G : α) :=
+  ord_func G ∧ (∀ α o∈ D(G), ∀ β o∈ D(G), α < β → G[[α.val]] ∈ G[[β.val]])
+theorem ord_func_value_ord [has_belong α] [has_intersection α Class] [has_value α]
+  {G : α} {α : ordinal} (h : ord_func G) (ha : α ∈ D(G)) : Ord(G[[α.val]]) := by
+  apply h.2.2; simp only [has_function.proof_range]; use α.val;
+  exact value_func2 h.1.2 ha;
+def ord_func_value [has_belong α] [has_intersection α Class] [has_value α] {G : α}
+  (h : ord_func G) {α : ordinal} (ha : α ∈ D(G)) : ordinal := ⟨G[[α.val]], ord_func_value_ord h ha⟩
+theorem strict_monotone_value [has_belong α] [has_intersection α Class]
+  [has_value α] {G : α} (h : strict_monotone G) :
+  ∀ (α : ordinal), ∀ ha : α ∈ D(G), ∀ (β : ordinal), ∀ hb : β ∈ D(G),
+  α < β → ord_func_value h.1 ha < ord_func_value h.1 hb := h.2
+theorem strict_monotone_value_le [has_belong α] [has_intersection α Class]
+  [has_value α] {G : α} (h : strict_monotone G) :
+  ∀ (α : ordinal), ∀ ha : α ∈ D(G), ∀ (β : ordinal), ∀ hb : β ∈ D(G),
+  α ≤ β → ord_func_value h.1 ha ≤ ord_func_value h.1 hb := by
+  intro α ha β hb h1; rw [ord_le] at *; cases h1 with
+  | inl h1 => left; exact strict_monotone_value h α ha β hb h1;
+  | inr h1 => right; subst α; rfl;
+
+theorem ord_isom_monotone [has_belong α] [has_intersection α Class] [has_value α]
+  {F A B : α} (h1 : Isom F E E A B) (h2 : Ord(A)) (h3 : B s⊆ On) : strict_monotone F := by
+  constructor; · use ⟨h1.1.1.1.1, h1.1.1.1.2.1⟩; rw [←h1.1.1.2, h1.1.2]; use h2;
+  simp only [←h1.1.1.2]; intro α ha β hb; have h4 := h1.2; simp only [E_simp] at h4;
+  exact (h4 _ ha _ hb).1
+theorem monotone_ge_value [has_belong α] [has_intersection α Class] [has_value α]
+  {G : α} (h : strict_monotone G) : ∀ α : ordinal, ∀ h2 : α ∈ D(G),
+  α ≤ ord_func_value h.1 h2 := by
+  intro α; apply ordinal.induction α; intro α ha h2;
+  have hg := fun γ hg ↦ ord_le_lt_trans (ha γ hg (h.1.2.1.1 _ h2 _ hg))
+    (strict_monotone_value h _ (h.1.2.1.1 _ h2 _ hg) _ h2 hg);
+  intro γ hg2; exact hg ⟨γ, ord_element_ord _ _ hg2⟩ hg2;
+
+theorem I_monotone [has_belong α] [has_intersection Class α]
+  [has_intersection α Class]
+  {A : α} (h : Ord(A)) : strict_monotone (I Γ A) := by
+  constructor;
+  · use restrict_is_func ⟨id_one_one.1, id_one_one.2.1⟩; constructor;
+    · rw [domain_restrict]; simp only [id_domain, inter_V]; rwa [←ord_class_has_belong];
+    rw [id_range2]; intro x; simp only [set_belong_to_class2]; exact ord_element_ord' _ _ h;
+  intro α ha β hb h1; simp only [domain_restrict, id_domain, inter_V, ord_belonged_to,
+    set_belong_to_class2] at ha hb;
+  rw [restrict_value ha, restrict_value hb]; simp only [id_value]; exact h1;
+theorem restrict_ord_func [has_belong α] [has_intersection Class α]
+  [has_intersection α Class] [has_value α] [has_belong β] [has_intersection α β]
+  {f : α} {A : β} (h1 : Ord(A)) (h2 : ord_func f) : ord_func (f Γ A) := by
+  use restrict_is_func h2.1; constructor;
+  · rw [domain_restrict]; exact ord_inter h2.2.1 h1;
+  exact @subseteq_trans _ _ _ _ _ _ W(f Γ A) W(f) On restrict_range h2.2.2;
+theorem restrict_monotone [has_belong α] [has_intersection Class α]
+  [has_intersection α Class] [has_value α] [has_belong β] [has_intersection α β]
+  {f : α} {A : β} (h1 : Ord(A)) (h2 : strict_monotone f) : strict_monotone (f Γ A) := by
+  use restrict_ord_func h1 h2.1;
+  intro α ha β hb h3; erw [domain_restrict, has_intersection.proof_intersection] at ha hb;
+  rw [restrict_value ha.2, restrict_value hb.2];
+  exact h2.2 _ ha.1 _ hb.1 h3;
+theorem ord_func_to_set {f : Class} {h : f.is_set} :
+  ord_func (f.to_set h) ↔ ord_func f := by
+  unfold ord_func is_ordinal is_transitive subseteq
+  simp [class_to_set_func, class_to_set_domain, class_to_set_range, Class_to_set_ext]
+theorem monotone_to_set {f : Class} {h : f.is_set} :
+  strict_monotone (f.to_set h) ↔ strict_monotone f := by
+  unfold strict_monotone;
+  simp [ord_func_to_set, class_to_set_domain, class_to_set_value, ord_belonged_to,
+    Class_to_set_ext];
+
+theorem strict_monotone_congr [has_belong α] [has_intersection α Class] [has_value α]
+  {F G : α} : strict_monotone F → strict_monotone G → strict_monotone (F ∘ G) := by
+  intro h1 h2; constructor;
+  · use ⟨congr_relation, congr_unitary h1.1.1.2 h2.1.1.2⟩; constructor;
+    · have h : Tr(D(F ∘ G));
+      · intro x hx y hy;
+        simp only [has_function.proof_domain, has_function.proof_congr,
+          ordered_pair_eq_iff, exists_and_left, ↓existsAndEq, and_true] at *;
+        rcases hx with ⟨x1, x2, hx1, hx2⟩;
+        have hx3 := (has_function.proof_domain _).2 ⟨_, hx1⟩;
+        have hxo := ord_element_ord' _ _ h1.1.2.1 hx3; let x : ordinal := ⟨x, hxo⟩;
+        let y : ordinal := ⟨y, ord_element_ord x y hy⟩;
+        have hy1 := h1.1.2.1.1 _ hx3 _ hy;
+        use G[[F[[y.val]]]]; use F[[y.val]]; use value_func2 h1.1.1.2 hy1;
+        apply value_func2 h2.1.1.2; have hx4 := (has_function.proof_domain _).2 ⟨_, hx2⟩;
+        apply h2.1.2.1.1 _ hx4; rw [←value_func h1.1.1.2 hx1];
+        exact h1.2 y hy1 x hx3 hy;
+      · refine ordinal_class_transitive _ ?_ h; apply subseteq_trans congr_domain;
+        intro x; exact ord_element_ord' _ _ h1.1.2.1;
+    exact subseteq_trans congr_range h2.1.2.2;
+  intro α ha β hb h3; rw [congr_value h1.1.1.2 h2.1.1.2, congr_value h1.1.1.2 h2.1.1.2];
+  · let fa := ord_func_value h1.1 (congr_domain _ ha);
+    let fb := ord_func_value h1.1 (congr_domain _ hb);
+    apply h2.2 fa _ fb _;
+    · apply h1.2; assumption'; · exact congr_domain _ ha;
+      · exact congr_domain _ hb;
+    · exact congr_domain2 h1.1.1.2 ha;
+    · exact congr_domain2 h1.1.1.2 hb;
+  · exact congr_domain _ hb;
+  · exact congr_domain2 h1.1.1.2 hb;
+  · exact congr_domain _ ha;
+  · exact congr_domain2 h1.1.1.2 ha;
+theorem ord_func_congr_value [has_belong α] [has_intersection α Class] [has_value α]
+  {F G : α} {hf : ord_func F} {hg : ord_func G} {hfg : ord_func (F ∘ G)} {α : ordinal}
+  {ha : α ∈ D(F ∘ G)} {ha1 : α ∈ D(F)} {ha2 : ord_func_value hf ha1 ∈ D(G)} :
+  ord_func_value hfg ha = ord_func_value hg ha2 :=
+  Subtype.ext (congr_value hf.1.2 hg.1.2 ha1 ha2)
+
 
 end zfset

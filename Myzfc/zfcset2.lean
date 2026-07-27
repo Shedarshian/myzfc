@@ -57,7 +57,6 @@ by
   apply value_case1_; · use x;
   use x; constructor; · use x;
   intros y h; simp at h; aesop;
-
 theorem id_one_one : Fnc₂(I) :=
 by
   rw [one_one_function_iff_func];
@@ -67,6 +66,13 @@ by
   constructor;
   · intro x ⟨y, y₁, h₁, h₂⟩; rw [h₂]; simp [pair_in_product];
   intro u v w ⟨⟨c₁, y₁, h₁⟩, c₂, y₂, h₂⟩; simp at *; aesop;
+theorem id_fnc : Fnc(I) := ⟨id_one_one.1, id_one_one.2.1⟩
+@[simp] theorem id_domain : D(I) = V := by
+  rw [←extensionality_belong]; intro x; simp [has_function.proof_domain];
+@[simp] theorem id_range : W(I) = V := by
+  rw [←extensionality_belong]; intro x; simp [has_function.proof_range];
+@[simp] theorem id_range2 [has_belong α] {A : α} : I[A] = has_belong.to_Class A := by
+  rw [←extensionality_belong]; intro x; simp [has_function.proof_range];
 
 def Fnc_on {α : Type u} [has_belong α] [has_intersection α Class]
 [has_function α] (A B : α) : Prop :=
@@ -212,6 +218,17 @@ theorem class_to_set_range {f : Class} {h : f.is_set} :
   conv => rhs; lhs; congr; rw [←@Class_to_set_to_Class f h];
   conv => rhs; lhs; rw [set_to_class_range];
   rw [set_to_Class_to_set];
+theorem class_to_set_value {f : Class} {h : f.is_set} {a : set} :
+  (f.to_set h)[[a]] = f[[a]] := by
+  by_cases h1 : ∃!y, s⟨a, y⟩ ∈ f <;> have h1' := h1;
+  · conv at h1 => rhs; ext; rw [←Class_to_set_ext h];
+    have h1'' := h1'; rcases h1'' with ⟨y, h1'', _⟩;
+    have h1''' := h1''; rw [←Class_to_set_ext h] at h1''';
+    rw [has_value.value_case1 h1''' h1]; symm;
+    exact has_value.value_case1 h1'' h1';
+  · conv at h1 => rhs; rhs; ext; rw [←Class_to_set_ext h];
+    rw [has_value.value_case2 h1]; symm;
+    exact has_value.value_case2 h1';
 
 theorem function_one_pair {a b} : Fnc_on s{s⟨a, b⟩} s{a} := by
   constructor; constructor;
@@ -386,10 +403,31 @@ theorem restrict_range [has_belong α] [has_intersection α Class]
   rw [pair_in_restrict]; intro ⟨_, _⟩; use y;
 theorem congr_range [has_belong α] [has_intersection α Class] [has_function α]
   {f g : α} : W(f ∘ g) s⊆ W(g) := by
-  intro x; rw [has_function.proof_range, has_function.proof_range];
-  conv => lhs; rhs; ext; rw [has_function.proof_congr];
-  intro ⟨_, _, y, _, h, _, h2⟩; use y; simp only [ordered_pair_eq_iff] at h2;
-  rwa [h2.2];
+  intro x; simp only [has_function.proof_range, has_function.proof_congr,
+    ordered_pair_eq_iff, exists_and_left, ↓existsAndEq, and_true,
+    forall_exists_index, and_imp];
+  intro _ y _ _; use y;
+theorem congr_domain [has_belong α] [has_intersection α Class] [has_function α]
+  {f g : α} : D(f ∘ g) s⊆ D(f) := by
+  intro x; simp only [has_function.proof_domain, has_function.proof_congr,
+    ordered_pair_eq_iff, exists_and_left, ↓existsAndEq, and_true,
+    forall_exists_index, and_imp];
+  intro _ y _ _; use y;
+theorem congr_domain2 [has_belong α] [has_intersection α Class] [has_value α]
+  {f g : α} (h0 : Un(f)) {a : set} : a ∈ D(f ∘ g) → f[[a]] ∈ D(g) := by
+  simp only [has_function.proof_domain, has_function.proof_congr,
+    ordered_pair_eq_iff, exists_and_left, ↓existsAndEq, and_true,
+    forall_exists_index, and_imp];
+  intro y fx h1 h2; use y; rwa [value_func h0 h1];
+theorem congr_domain3 [has_belong α] [has_intersection α Class] [has_function α]
+  {f g : α} (h : W(f) s⊆ D(g)) : D(f ∘ g) = D(f) := by
+  rw [←extensionality_belong]; intro x;
+  simp only [has_function.proof_domain, has_function.proof_congr,
+    ordered_pair_eq_iff, exists_and_left, ↓existsAndEq, and_true];
+  rw [exists_comm]; apply exists_congr; simp only [exists_and_left, and_iff_left_iff_imp];
+  intro a ha; have h := h a;
+  simp only [has_function.proof_domain, has_function.proof_range] at h;
+  apply h; use x;
 theorem restrict_to_domain [has_belong α] [has_intersection α Class]
   [has_function α] {f : α} (h : Rel(f)) : f = f Γ D(f) := by
   rw [←extensionality_belong]; intro x;
@@ -405,6 +443,11 @@ theorem range_one_element {f a : set} (h : Un(f)) (h2 : a ∈ D(f)) :
     exists_eq_right]; constructor;
   · exact fun x => Eq.symm ((value_func_iff h).1 x).1;
   exact fun x ↦ (value_func_iff h).2 ⟨Eq.symm x, h2⟩;
+theorem congr_value [has_belong α] [has_intersection α Class] [has_value α]
+  {f g : α} {a : set} (hf : Un(f)) (hg : Un(g)) (h1 : a ∈ D(f)) (h2 : f[[a]] ∈ D(g)) :
+  (f ∘ g)[[a]] = g[[f[[a]]]] := by
+  apply value_func (congr_unitary hf hg); rw [pair_in_congr]; use f[[a]];
+  use value_func2 hf h1; exact value_func2 hg h2;
 
 theorem id_isom (R A : Class) : Isom (I Γ A) R R A A :=
 by
@@ -726,9 +769,23 @@ theorem wfwo_class_minimal [has_belong α] [has_intersection α Class] [has_func
     pair_in_inverse, element_in_one_element_set, exists_eq_right] at hy1;
   intro ha1 ha2;
   exact well_order_trans h.2 _ (hb1 _ ha2) _ (hb1 _ hy1.1) _ (hb1 _ hb3) ha1 hy1.2;
-theorem well_founded_on_set {R : Class} {a : set} :
-  (∀ x s∈ a, has_belong.is_set (a.to_Class ∩ (R⁻¹[s{x}]))) := by
-  intro x hx; rw [intersection_comm, intersection_right_set];
+theorem well_founded_on_set [has_belong α] [has_intersection α Class] [has_function α]
+  [has_intersection set α] [has_intersection Class α]
+  {R : α} {a : set} :
+  (∀ x s∈ a.to_Class, has_belong.is_set (a.to_Class ∩ (R⁻¹[s{x}]))) := by
+  intro x hx; rw [intersection_left_set];
   exact set_to_Class_is_set;
+
+theorem inv_one_one_onto [has_belong α] [has_intersection α Class] [has_function α]
+  {f A B : α} (h : f f: A-1-1onto->B) : f⁻¹ f: B-1-1onto->A := by
+  unfold Fnc₂_on; simp only [domain_inv, range_inv]; constructor;
+  · use ⟨inverse_is_relation, inv_unitary2 h.1.1.2⟩; symm; use h.2;
+  symm; use h.1.2;
+
+@[simp] theorem V_inter [has_belong α] [has_intersection α Class] {A : α} : A ∩ V = A := by
+  rw [←extensionality_belong]; intro a; simp;
+@[simp] theorem inter_V [has_belong α] [has_intersection Class α] {A : α} : V ∩ A =
+  has_belong.to_Class A := by
+  rw [←extensionality_belong]; intro a; simp;
 
 end zfset

@@ -449,9 +449,10 @@ instance intersection_is_commutative
   : @Std.Commutative α intersection :=
 ⟨ @intersection_comm α t s ⟩
 
-@[simp] theorem intersection_assoc
-  {α : Type u} [t : has_belong α] [s : has_intersection α α] {a b c : α} :
-(a ∩ b) ∩ c = a ∩ (b ∩ c) :=
+@[simp] theorem intersection_assoc [has_belong α] [has_belong β] [has_belong γ]
+  [has_intersection α β] [has_intersection β γ] [has_intersection α γ]
+  {a : α} {b : β} {c : γ} :
+  (a ∩ b) ∩ c = a ∩ (b ∩ c) :=
 by
   erw [← extensionality_belong];
   intro x;
@@ -461,7 +462,7 @@ by
 instance intersection_is_associative
   (α : Type u) [t : has_belong α] [s : has_intersection α α]
   : @Std.Associative α intersection :=
-⟨ @intersection_assoc α t s ⟩
+⟨ @intersection_assoc α α α t t t s s s ⟩
 
 @[simp] theorem intersection_def [has_belong α]
 [has_belong β] [has_intersection α β]
@@ -474,7 +475,8 @@ theorem intersection_to_class {A : Class} {b : set} : A ∩ b = A ∩ b.to_Class
   simp only [intersection_def, and_congr_right_iff];
   rw [set_belong_set_to_class]; simp only [implies_true];
 
-theorem intersection_to_class_has_belong {A : Class} {b : set} :
+theorem intersection_to_class_has_belong [has_belong α] [has_intersection Class α]
+  {A : Class} {b : α} :
   A ∩ b = A ∩ has_belong.to_Class b := by
   rw [←extensionality_belong]; intro a;
   simp only [intersection_def, and_congr_right_iff];
@@ -635,9 +637,8 @@ infix:50 " s⊃ " => fun x y => subset y x
 @[refl] theorem subseteq_refl
   {α : Type u} [s : has_belong α] {a : α} :
 a s⊆ a := by {intro x; apply id}
-@[trans] theorem subseteq_trans
-  {α : Type u} {β : Type u} {γ : Type u} [s1 : has_belong α] [s1 : has_belong β]
-  [s1 : has_belong γ] {a : α} {b : β} {c : γ} :
+@[trans] theorem subseteq_trans [has_belong α] [has_belong β]
+  [has_belong γ] {a : α} {b : β} {c : γ} :
 a s⊆ b → b s⊆ c → a s⊆ c :=
 by
   intro h1 h2 x;
@@ -670,17 +671,17 @@ by
   rw [h3] at h;
   exact h.2 h.1;
 
-instance subseteq_is_le {α : Type u} [s : has_belong α] : LE α :=
-  ⟨subseteq⟩
-instance subset_is_lt {α : Type u} [s : has_belong α] : LT α :=
-  ⟨subset⟩
-instance subseteq_is_preorder {α : Type u} [s : has_belong α] : Preorder α :=
-  ⟨@subseteq_refl α s, @subseteq_trans α α α s s s,
-    @subset_iff_subseteq_not_subseteq α s⟩
-instance subseteq_is_partial_order
-  {α : Type u} [s : has_belong α]
-  : PartialOrder α :=
-  ⟨@subseteq_antisymm α s⟩
+-- instance subseteq_is_le {α : Type u} [s : has_belong α] : LE α :=
+--   ⟨subseteq⟩
+-- instance subset_is_lt {α : Type u} [s : has_belong α] : LT α :=
+--   ⟨subset⟩
+-- instance subseteq_is_preorder {α : Type u} [s : has_belong α] : Preorder α :=
+--   ⟨@subseteq_refl α s, @subseteq_trans α α α s s s,
+--     @subset_iff_subseteq_not_subseteq α s⟩
+-- instance subseteq_is_partial_order
+--   {α : Type u} [s : has_belong α]
+--   : PartialOrder α :=
+--   ⟨@subseteq_antisymm α s⟩
 
 theorem subseteq_iff_subset_eq
   {α : Type u} [has_belong α] [has_binary_union α] {a b : α} :
@@ -716,9 +717,8 @@ by
   rw [Iff.comm];
   exact h;
 
-@[simp] theorem subseteq_iff_eq_intersection
-  {α : Type u} {β : Type v} [t : has_belong α] [t2 : has_belong β]
-  [s : has_intersection α β] {a : α} {b : β} :
+theorem subseteq_iff_eq_intersection [has_belong α] [has_belong β]
+  [has_intersection α β] {a : α} {b : β} :
 a s⊆ b ↔ a = a ∩ b :=
 by
   apply Iff.intro <;> intro h;
@@ -736,9 +736,8 @@ by
   rw [Iff.comm];
   exact h;
 
-theorem intersection_subseteq_left
-  {α : Type u} [t : has_belong α] [s : has_intersection α α] {a b : α} :
-a ∩ b s⊆ a :=
+theorem intersection_subseteq_left [has_belong α] [has_belong β] [has_intersection α β]
+  [has_intersection α α] {a : α} {b : β} : a ∩ b s⊆ a :=
 by
   simp only [subseteq_iff_eq_intersection, intersection_comm];
   rw [← intersection_assoc];
@@ -891,6 +890,20 @@ theorem intersection_right_set {A : Class} {a : set} :
   A ∩ a.to_Class = (a ∩ A).to_Class := by
   rw [←extensionality_belong]; intro x;
   simp only [intersection_def, ←set_belong_set_to_class, And.comm];
+theorem intersection_left_set [has_belong α] [has_intersection set α]
+  [has_intersection Class α]
+  {A : α} {a : set} :
+  a.to_Class ∩ A = (a ∩ A).to_Class := by
+  rw [←extensionality_belong]; intro x;
+  simp only [intersection_def, ←set_belong_set_to_class, And.comm];
+theorem intersection_left_to_set {A : Class} {h : A.is_set} {a : set} :
+  A.to_set h ∩ a = (A ∩ a).to_set (subseteq_is_set intersection_subseteq_right) := by
+  rw [←extensionality_belong]; intro x;
+  simp only [intersection_comm, intersection_def, Class_to_set_ext, And.comm];
+theorem intersection_right_to_set {A : Class} {h : A.is_set} {a : set} :
+  a ∩ A.to_set h = a ∩ A := by
+  rw [←extensionality_belong]; intro x;
+  simp only [intersection_def, Class_to_set_ext, And.comm];
 
 noncomputable instance set.to_has_sub : Sub set :=
 ⟨ fun a b => make_separation a (· ∉ b) ⟩
@@ -953,7 +966,8 @@ axiom axiom_of_regularity {a} (h : a ≠ s0) :
 axiom axiom_of_regularity_strong {a : Class} (h : a ≠ s0) :
 ∃ x, x ∈ a ∧ x ∩ a = s0
 
-theorem belong_to_6 {a1 a2 a3 a4 a5 a6 : set} : ¬(a1 ∈ a2 ∧ a2 ∈ a3 ∧ a3 ∈ a4 ∧ a4 ∈ a5 ∧ a5 ∈ a6 ∧ a6 ∈ a1) :=
+theorem belong_to_6 {a1 a2 a3 a4 a5 a6 : set} : ¬(a1 ∈ a2 ∧ a2 ∈ a3 ∧ a3 ∈ a4 ∧
+  a4 ∈ a5 ∧ a5 ∈ a6 ∧ a6 ∈ a1) :=
 by
   have h : s{a1, a2} ∪ s{a3, a4} ∪ s{a5, a6} ≠ s0;
   · rw [nonempty_iff_has_element];
@@ -1324,7 +1338,7 @@ by
     rhs; ext; lhs; erw [proof_to_Class];
   exact h₀;
 
-theorem congr_value [has_belong α] [has_intersection α Class] [has_function α]
+theorem congr_image [has_belong α] [has_intersection α Class] [has_function α]
   [has_belong β] {f g : α} {a : β} : (f ∘ g)[a] = g[f[a]] := by
   rw [←extensionality_belong]; intro x;
   simp only [has_function.proof_range, belong_restrict, has_function.proof_congr];
@@ -1411,7 +1425,6 @@ by
     use s⟨x, y⟩; use h;
     use x; use y;
   exact function_domain_unitary;
-
 theorem set_function_range {a : set} (y : set) :
 y ∈ set_range a function_range ↔ ∃ (x : set), s⟨x, y⟩ ∈ a :=
 by
@@ -1424,7 +1437,6 @@ by
     use s⟨y1, y⟩; use h;
     use y1; use y;
   exact function_range_unitary;
-
 theorem set_function_inverse {a : set} (b : set) :
 b ∈ set_range a function_inverse ↔ ∃ x y, s⟨x, y⟩ ∈ a ∧ b = s⟨y, x⟩ :=
 by
@@ -1439,7 +1451,6 @@ by
     use s⟨y1, y2⟩; use h.1;
     use y1; use y2; rw [h.2];
   exact function_inverse_unitary
-
 theorem set_function_congr {f g : set} (b : set) :
   b ∈ set_range (f × g) function_congr ↔
   ∃ x y z, s⟨x, y⟩ ∈ f ∧ s⟨y, z⟩ ∈ g ∧ b = s⟨x, z⟩ := by
@@ -1688,7 +1699,6 @@ by
     · exact set_to_Class_is_set;
     assumption;
 
-open Classical
 noncomputable def value (A : Class) (b : set) : set :=
 (value_class A b).to_set value_class_is_set
 class has_value (α : Type u) [has_belong α] [has_intersection α Class]
@@ -1779,7 +1789,7 @@ theorem succ_pred_set (a : set) : a = pred_set (succ_set a) := by
   cases h2 with
   | inr => assumption;
   | inl h2 =>
-    have h3 := @self_belong_succ (choose h);
+    have h3 := @self_belong_succ (Classical.choose h);
     rw [←h1, belong_succ_iff] at h3;
     cases h3 with
     | inr => symm; assumption;
