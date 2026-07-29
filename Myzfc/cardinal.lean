@@ -300,6 +300,11 @@ theorem eqv_ord_well_order {a : set} {α : ordinal} (h : α.val s≅ a) :
   rcases h with ⟨f, h⟩;
   have he := well_order_restrict (E_well_order_ord α);
   have h2 := eqv_well_order h he; aesop;
+theorem well_order_eqv_ord [has_belong α] [has_intersection α Class] [has_value α]
+  [has_intersection set α] [has_intersection Class α] {a : set} {R : α}
+  (h : is_well_order R a) :
+  ∃ α : ordinal, α.val s≅ a := by
+  rcases ord_isom_we_set h with ⟨α, ⟨f, h1⟩, h2⟩; use α; use f; exact h1.1;
 
 open Classical in
 noncomputable def card (a : set) : ordinal :=
@@ -358,6 +363,9 @@ theorem eqv_card_eq {a b : set} : a s≅ b → |a| = |b| := by
   unfold card; simp only [h, ↓reduceDIte, h2];
 theorem eqv_ord_le {a} {α} (h : a s≅ α.val) : |a| ≤ α :=
   (card_def1 ⟨α, eqv_symm h⟩).2 _ (eqv_symm h)
+theorem eqv_s0_eq_s0 {a} : a s≅ s0 → a = s0 := by
+  rw [eqv_comm]; intro ⟨f, h1, h2⟩; have h3 := domain_empty_set ⟨⟨h1.1.1, h1.1.2.1⟩, h1.2⟩;
+  subst f; symm; rwa [range_empty_set] at h2;
 
 @[simp] theorem card_0 : |s0| = o0 := by
   have h : ∃ α : ordinal, α.val s≅ s0 := ⟨o0, eqv_refl⟩;

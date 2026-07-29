@@ -82,9 +82,9 @@ syntax "∃ " ident " s∈ " term ", " term : term
 syntax "∃ " "_" " s∈ " term ", " term : term
 macro_rules
 | `(∃ $x:ident s∈ $A, $P) =>
-    `(∃ $x:ident, $x ∈ $A ∧ $P)
+    `(∃ $x:ident : set, $x ∈ $A ∧ $P)
 | `(∃ _ s∈ $A, $P) =>
-    `(∃ x, x ∈ $A ∧ $P)
+    `(∃ x : set, x ∈ $A ∧ $P)
 
 theorem proof_to_Class {α : Type u} [has_belong α] {a : α} {b : set} :
 b ∈ (has_belong.to_Class a) ↔ b ∈ a :=

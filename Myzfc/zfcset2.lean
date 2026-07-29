@@ -533,10 +533,14 @@ def make_inter_reloaded
 has_inter.inter a
 
 notation "∩(" a ")" => make_inter_reloaded a
-notation "{" y " // " x " s∈ " a "}" => (make_replacement a (fun x _y => _y = y))
+notation "{" y " | " x " s∈ " a "}" => (make_replacement a (fun x _y => _y = y))
+noncomputable def set_separation : set → (set → Prop) → set :=
+  fun a (f : Class) => a ∩ f
+notation "{" x " s∈ " a " | " f "}" => (set_separation a (fun x => f))
+notation "{" y " | " x " s∈ " a " | " f "}" => {y | x s∈ {x s∈ a | f}}
 
 theorem replacement_notation_def {a y : set} {f : set → set} :
-  y ∈ {f x // x s∈ a} ↔ ∃ x s∈ a, y = f x := by
+  y ∈ {f x | x s∈ a} ↔ ∃ x s∈ a, y = f x := by
   rw [axiom_of_replacement]; simp;
 
 theorem restrict_intersection [has_belong α] [has_intersection α Class]
@@ -787,5 +791,7 @@ theorem inv_one_one_onto [has_belong α] [has_intersection α Class] [has_functi
 @[simp] theorem inter_V [has_belong α] [has_intersection Class α] {A : α} : V ∩ A =
   has_belong.to_Class A := by
   rw [←extensionality_belong]; intro a; simp;
+
+
 
 end zfset

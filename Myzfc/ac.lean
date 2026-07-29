@@ -8,6 +8,7 @@ namespace zfset
 
 def AC := ∀ a : set, ∃ f : set, ∀ x s∈ a, x ≠ s0 → f[[x]] ∈ x
 def WOP := ∀ a : set, ∃ r : set, is_well_order r a
+def GCH := ∀ a, ∀ b : set, b s⊆ P(a) → infinite a → (∃ x, a s⊆ x ∧ x s≅ b) → b s≅ a ∨ b s≅ P(a)
 
 theorem AC_to_WOP (ac : AC) : WOP := by
   intro a; rcases ac P(a) with ⟨f, h⟩;
@@ -81,5 +82,15 @@ theorem WOP_to_AC (wop : WOP) : AC := by
   rw [proof_in_Class] at hf6; simp only [ordered_pair_eq_iff, ne_eq,
     ↓existsAndEq, and_true, exists_eq_left'] at hf6; exact hf6.2.2.1
 theorem AC_eq_WOP : AC ↔ WOP := Iff.intro AC_to_WOP WOP_to_AC
+
+theorem eqv_ord [ac : Fact AC] {a : set} : ∃ α : ordinal, α.val s≅ a :=
+  match AC_to_WOP ac.out a with | ⟨_, h⟩ => well_order_eqv_ord h
+theorem all_eqv_card [ac : Fact AC] {a : set} : |a|.val s≅ a := eqv_card.2 eqv_ord
+theorem card_o0_eq_s0 [ac : Fact AC] {a : set} : |a| = o0 ↔ a = s0 := by
+  have h := @all_eqv_card _ a; constructor <;> intro h1;
+  · rw [h1] at h; symm at h; exact eqv_s0_eq_s0 h;
+  subst a; simp only [card_0];
+
+
 
 end zfset
