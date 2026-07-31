@@ -485,7 +485,7 @@ theorem intersection_to_class_has_belong [has_belong α] [has_intersection Class
 axiom empty_set : set
 axiom axiom_of_empty {x : set} : x ∉ empty_set
 notation "s0" => empty_set
-theorem empty_false {x : set} : x ∈ s0 ↔ False :=
+@[simp] theorem empty_false {x : set} : x ∈ s0 ↔ False :=
 by {
   apply Iff.intro;
   · exact axiom_of_empty;
@@ -911,15 +911,36 @@ noncomputable instance set.to_has_sub : Sub set :=
 instance Class.to_has_sub : Sub Class :=
 ⟨ fun A B x => x ∈ A ∧ x ∉ B ⟩
 
-lemma set_sub_is_sub {a b x : set} :
+@[simp] lemma set_sub_is_sub {a b x : set} :
 x ∈ a - b ↔ x ∈ a ∧ x ∉ b :=
 by
   erw [axiom_of_separation _ _ _];
   erw [has_intersection.proof_intersection];
   rfl;
 
-lemma class_sub_is_sub {a b : Class} {x : set} :
+@[simp] lemma class_sub_is_sub {a b : Class} {x : set} :
 x ∈ a - b ↔ x ∈ a ∧ x ∉ b := by rfl;
+
+theorem set_sub_union {a b : set} : (a - b) ∪ b = a ∪ b := by
+  rw [←extensionality_belong]; intro x; simp only [binary_union_comm, binary_union_def,
+    set_sub_is_sub];
+  apply Iff.intro;
+  · intro a_1; cases a_1 with
+    | inl h => simp_all only [or_true];
+    | inr h_1 => simp_all only [or_false];
+  · intro a_1; cases a_1 with
+    | inl h => simp_all only [true_and]; exact Classical.em _;
+    | inr h_1 => simp_all only [not_true_eq_false, and_false, or_false]
+theorem Class_sub_union {a b : Class} : (a - b) ∪ b = a ∪ b := by
+  rw [←extensionality_belong]; intro x; simp only [binary_union_comm, binary_union_def,
+    class_sub_is_sub];
+  apply Iff.intro;
+  · intro a_1; cases a_1 with
+    | inl h => simp_all only [or_true];
+    | inr h_1 => simp_all only [or_false];
+  · intro a_1; cases a_1 with
+    | inl h => simp_all only [true_and]; exact Classical.em _;
+    | inr h_1 => simp_all only [not_true_eq_false, and_false, or_false]
 
 theorem Class_sub_empty_iff_subseteq {A B : Class} : A - B = s0 ↔ A s⊆ B :=
 by

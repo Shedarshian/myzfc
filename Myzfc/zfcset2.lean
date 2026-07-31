@@ -238,6 +238,10 @@ theorem function_one_pair {a b} : Fnc_on s{s⟨a, b⟩} s{a} := by
     rw [has_function.proof_domain]; apply Iff.intro <;> intro h3;
     · rw [h3]; use b; simp;
     · simp at h3; assumption;
+theorem func2_one_pair {a b} : Fnc₂_on s{s⟨a, b⟩} s{a} := by
+  constructor; swap; · exact function_one_pair.2;
+  · use function_one_pair.1.1; use function_one_pair.1.2;
+    intro u v w ⟨h1, h2⟩; simp [pair_in_inverse] at h1 h2; aesop;
 theorem value_one_pair {a b} : s{s⟨a, b⟩}[[a]] = b := by
   apply has_value.value_case1; · simp only [element_in_one_element_set];
   use b; simp;
@@ -275,7 +279,6 @@ theorem union_function_apply {a b : Class}
   · simp only [binary_union_def]; left;
     rw [has_function.proof_domain] at hx; rcases hx with ⟨y, hx⟩;
     have hv := value_func fa.2 hx; rwa [hv];
-
 theorem union_function_apply_set {a b : set}
 (fa : Fnc(a)) (fb : Fnc(b)) (h : (D(a) ∩ D(b)) = s0)
 (x : set) (hx : x ∈ D(a)) : (a ∪ b)[[x]] = a[[x]] := by
@@ -285,6 +288,17 @@ theorem union_function_apply_set {a b : set}
   rw [has_function.proof_domain] at hx; rcases hx with ⟨y, hx⟩;
   have hv := value_func fa.2 hx; rw [hv];
   simp only [binary_union_def]; left; assumption;
+theorem union_inverse [has_belong α] [has_intersection α Class] [has_function α]
+[has_binary_union α] {a b : α} : (a ∪ b)⁻¹ = a⁻¹ ∪ b⁻¹ := by
+  rw [←extensionality_belong]; intro x;
+  simp [has_function.proof_inverse, ←exists_or, ←or_and_right];
+theorem union_func2 [has_belong α] [has_intersection α Class] [has_function α]
+  [has_binary_union α] [has_intersection α α] {a b : α} :
+  Fnc₂(a) → Fnc₂(b) → has_belong.to_Class (D(a) ∩ D(b)) = ↑s0 →
+  has_belong.to_Class (W(a) ∩ W(b)) = ↑s0 → Fnc₂(a ∪ b) := by
+  intro h1 h2 h3 h4; have h := union_function ⟨h1.1, h1.2.1⟩ ⟨h2.1, h2.2.1⟩ h3;
+  use h.1; use h.2; rw [union_inverse]; rw [←domain_inv, ←domain_inv] at h4;
+  exact union_unitary h1.2.2 h2.2.2 h4;
 
 theorem domain_restrict [has_belong α] [has_intersection α Class]
   [has_function α] [has_belong β] [has_intersection α β] {f : α} {a : β} :

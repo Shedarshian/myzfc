@@ -367,6 +367,78 @@ theorem eqv_s0_eq_s0 {a} : a s≅ s0 → a = s0 := by
   rw [eqv_comm]; intro ⟨f, h1, h2⟩; have h3 := domain_empty_set ⟨⟨h1.1.1, h1.1.2.1⟩, h1.2⟩;
   subst f; symm; rwa [range_empty_set] at h2;
 
+theorem one_set {a b : set} : s{a} s≅ s{b} := by
+  use s{s⟨a, b⟩}; use func2_one_pair; exact range_one_pair;
+theorem eqv_disjoint_union {a b c d : set} (h1 : a ∩ b = s0) (h2 : c ∩ d = s0)
+  (h3 : a s≅ c) (h4 : b s≅ d) : (a ∪ b) s≅ (c ∪ d) := by
+  rcases h3 with ⟨f, f1, f2⟩; rcases h4 with ⟨g, g1, g2⟩;
+  use f ∪ g; constructor; constructor;
+  · apply union_func2 f1.1 g1.1; · rw [←f1.2, ←g1.2, h1]; rfl;
+    · rw [f2, g2, h2]; rfl;
+  · rw [domain_union, ←f1.2, ←g1.2];
+  · rw [range_union, ←f2, ←g2];
+theorem omega_sub_0_eqv_omega : ω.val s≅ (ω.val - s{s0}) := by
+  let f := {s⟨n.val, (succ n).val⟩ // n o∈ ω}; use f; constructor; constructor; constructor;
+  · intro x hx; rw [mem_ordinal_replacement] at hx; rcases hx with ⟨_, _, _⟩; subst x; simp;
+  · constructor <;> intro u v w ⟨h1, h2⟩; swap; rw [pair_in_inverse] at h1 h2;
+    all_goals
+      rw [mem_ordinal_replacement] at h1 h2; simp only [ordered_pair_eq_iff] at h1 h2;
+      rcases h1 with ⟨a, ⟨_, _⟩, _⟩; rcases h2 with ⟨b, ⟨_, _⟩, _⟩; subst v w u;
+      rw [Subtype.coe_inj] at *;
+    · apply (@peano4 a b).1; assumption;
+    congr;
+  · rw [←extensionality_belong]; intro x; rw [has_function.proof_domain];
+    conv => rhs; rhs; ext; rw [mem_ordinal_replacement];
+            rhs; ext; rhs; rw [ord_belonged_to, belong_to_ordset];
+    simp only [← set_ord_belong, ordered_pair_eq_iff, ↓existsAndEq, and_true]; constructor <;> intro h;
+    · use ⟨x, ord_element_ord _ _ h⟩;
+    aesop;
+  · rw [←extensionality_belong]; intro x; rw [has_function.proof_range];
+    conv => lhs; rhs; ext; rw [mem_ordinal_replacement];
+            rhs; ext; rhs; rw [ord_belonged_to, belong_to_ordset];
+    simp only [ordered_pair_eq_iff, ↓existsAndEq, true_and]; constructor <;> intro h;
+    · rcases h with ⟨y, h1, h2⟩; subst x; rw [set_sub_is_sub]; use ord_k2_succ_in omega_in_K2 h2;
+      simp only [element_in_one_element_set]; intro h3; apply peano3; apply Subtype.ext; exact h3;
+    · rw [set_sub_is_sub] at h; simp only [element_in_one_element_set] at h; rcases h with ⟨h1, h2⟩;
+      let x : ordinal := ⟨x, ord_element_ord _ _ h1⟩;
+      have h1' := @nat_two_type x h1; rw [or_iff_not_imp_left] at h1';
+      have h3 := fun a ↦ h2 ((@Subtype.coe_inj _ _ x o0).2 a); have h3 := h1' h3;
+      rcases h3 with ⟨y, h3⟩; use y; use Subtype.coe_inj.2 h3; have h1 : x ∈ ω := h1;
+      rw [h3] at h1; exact ord_lt_trans ord_lt_succ h1;
+
+theorem omega_add_one_eqv_omega {a} (h : a ∉ ω) : (ω.val ∪ s{a}) s≅ ω.val := by
+  suffices h1 : ω.val = (ω.val - s{s0}) ∪ s{s0};
+  · conv => rhs; rw [h1];
+    apply eqv_disjoint_union;
+    · rw [←extensionality_belong]; intro b; simp only [intersection_def,
+      element_in_one_element_set, empty_false, iff_false, not_and];
+      intro c d; apply h; subst b; exact c;
+    · rw [←extensionality_belong]; intro b; simp only [intersection_comm, intersection_def,
+      element_in_one_element_set, set_sub_is_sub, empty_false, iff_false, not_and, not_not];
+      exact fun c _ ↦ c;
+    · exact omega_sub_0_eqv_omega;
+    · exact one_set;
+  rw [←extensionality_belong]; intro b; simp only [binary_union_comm, binary_union_def,
+    element_in_one_element_set, set_sub_is_sub];
+  apply Iff.intro;
+  · intro a_1; simp_all only [true_and]; exact Classical.em _;
+  · intro a_1; cases a_1 with
+    | inl h_1 => subst h_1; exact peano1;
+    | inr h_2 => simp_all only;
+theorem inf_ord_eqv_add_one {a : ordinal} (h : ω ≤ a) : (succ a).val s≅ a.val := by
+  suffices h1 : a.val = (a.val - ω.val) ∪ ω.val;
+  · suffices h2 : (succ a).val = (a.val - ω.val) ∪ (ω.val ∪ s{a.val});
+    · rw [h1, h2]; apply eqv_disjoint_union;
+      · rw [←extensionality_belong]; intro b; simp only [intersection_def, set_sub_is_sub,
+        binary_union_def, element_in_one_element_set, empty_false, iff_false, not_and, not_or,
+        and_imp]; intro c d; use d; intro e; subst b; exact belong_to_self c;
+      · rw [←extensionality_belong]; intro b; simp only [intersection_comm, intersection_def,
+        set_sub_is_sub, empty_false, iff_false, not_and, not_not]; exact fun c _ ↦ c;
+      · rfl;
+      · apply omega_add_one_eqv_omega; intro h3; exact belong_to_self (ord_lt_le_trans h3 h);
+    unfold succ; unfold succ_set; simp only; rw [←binary_union_assoc]; congr;
+  rw [set_sub_union, binary_union_comm, ←subseteq_iff_eq_union]; exact h;
+
 @[simp] theorem card_0 : |s0| = o0 := by
   have h : ∃ α : ordinal, α.val s≅ s0 := ⟨o0, eqv_refl⟩;
   have h1 := card_def1 h;
@@ -735,10 +807,27 @@ theorem hartogs_ordinal_not_injects {a : set} :
 def finite (a : set) := ∃ n o∈ ω, a s≅ n.val
 def infinite (a : set) := ¬(finite a)
 
+theorem nat_finite {n : nat} : finite n.val.val := ⟨n.val, n.prop, eqv_refl⟩
+theorem lt_omega_finite (h : n < ω) : finite n.val := ⟨_, h, eqv_refl⟩
+theorem ord_infinite {α : ordinal} (h : ω ≤ α) : infinite α.val := by
+  intro ⟨n, h1, h2⟩; have h3 := ord_eqv_nat h1 h2; subst α;
+  exact belong_to_self (ord_le_lt_trans h h1);
+theorem ord_infinite_iff {α : ordinal} : infinite α.val ↔ ω ≤ α := by
+  constructor <;> intro h;
+  · by_contra h1; apply h; rw [ord_nle] at h1; exact lt_omega_finite h1;
+  exact ord_infinite h;
+
 def is_card (α) := ∃ x, α = |x|
 def card_class : Class := fun s ↦ ∃ h : Ord(s), is_card ⟨s, h⟩
 def cardinal := {α : ordinal // is_card α}
 def inf_card := {α : ordinal // is_card α ∧ infinite α.val}
+def inf_card.to_card : inf_card → cardinal := fun c ↦ ⟨c.val, c.prop.1⟩
+@[reducible] instance inf_card.coe_card : Coe inf_card cardinal := ⟨ inf_card.to_card ⟩
+def cardinal.to_inf_card {κ : cardinal} (h : ω ≤ κ.val) : inf_card :=
+  ⟨κ.val, ⟨κ.prop, ord_infinite h⟩⟩
+theorem to_card_val_eq {α : inf_card} : α.to_card.val = α.val := rfl
+theorem to_inf_card_val_eq {α : cardinal} {h : ω ≤ α.val} : (α.to_inf_card h).val = α.val := rfl
+
 theorem cardinal_card {α : ordinal} : is_card α ↔ α = |α.val| := by
   constructor <;> intro h; swap; · use α.val;
   rcases h with ⟨x, h⟩; cases card_def_or x with
@@ -752,6 +841,8 @@ theorem omega_is_card : is_card ω := cardinal_card.2 omega_card
 
 instance cardinal.to_has_lt : LT cardinal := ⟨ fun a b ↦ a.val < b.val ⟩
 instance cardinal.to_has_le : LE cardinal := ⟨ fun a b ↦ a.val ≤ b.val ⟩
+instance inf_card.to_has_lt : LT inf_card := ⟨ fun a b ↦ a.val < b.val ⟩
+instance inf_card.to_has_le : LE inf_card := ⟨ fun a b ↦ a.val ≤ b.val ⟩
 
 theorem card_class_proper_class : Class.is_proper card_class := by
   intro hset
@@ -819,8 +910,15 @@ theorem aleph_is_ord (α : ordinal) : ∃ h : Ord(Aleph[[α.val]]), is_card ⟨A
   have ha : α ∈ On := α.prop; rw [h2] at ha; have ha2 := value_func2 h1.2.1 ha;
   have h5 := (has_function.proof_range _).2 ⟨_, ha2⟩; rw [h3] at h5;
   exact h5.1;
-noncomputable def aleph (α : ordinal) : cardinal := ⟨⟨Aleph[[α.val]],
-  (aleph_is_ord α).fst⟩, (aleph_is_ord α).snd⟩
+theorem aleph_infinite (α : ordinal) : infinite (Aleph[[α.val]]) := by
+  intro ⟨n, h1, h2⟩; have h0 : α ∈ D(Aleph); · rw [←Aleph_spec.1.1.2]; exact α.prop;
+  have h3 := (has_function.proof_range _).2 ⟨_, value_func2 Aleph_spec.1.1.1.2.1 h0⟩;
+  rw [Aleph_spec.1.2, class_sub_is_sub] at h3;
+  have h4 := aleph_is_ord α; let o : ordinal := ⟨_, h4.fst⟩;
+  have h5 := @ord_eqv_nat o _ h1 h2; have h6 : o.val ∉ ω := h3.2; rw [h5] at h6; exact h6 h1;
+
+noncomputable def aleph (α : ordinal) : inf_card := ⟨⟨Aleph[[α.val]],
+  (aleph_is_ord α).fst⟩, ⟨(aleph_is_ord α).snd, aleph_infinite α⟩⟩
 notation "ℵ_(" α ")" => aleph α
 theorem aleph_ord_lt {α β : ordinal} : α < β ↔ ℵ_(α).val < ℵ_(β).val := by
   suffices h1 : ∀ {α β}, α < β → ℵ_(α).val < ℵ_(β).val;
@@ -851,10 +949,10 @@ theorem aleph_range {α : ordinal} : ω ≤ ℵ_(α).val := by
     | inl h3 => rw [←h3] at h1; have h1 := h1.2; exact h1 hn;
     | inr h3 =>
       have h4 := ω.prop.1 _ hn _ h3; exact h1.2 h4;
-theorem aleph_value_exists {κ : cardinal} : ω ≤ κ.val → ∃ α, κ = ℵ_(α) := by
-  intro h; have h1 : κ.val.val ∈ card_class - ω.val;
-  · use ⟨κ.val.prop, κ.prop⟩; simp only [←set_belong_set_to_class]; intro h1;
-    have h1 := ord_le_lt_trans h h1; exact belong_to_self h1;
+theorem aleph_value_exists (κ : inf_card) : ∃ α, κ = ℵ_(α) := by
+  have h1 : κ.val.val ∈ card_class - ω.val;
+  · use ⟨κ.val.prop, κ.prop.1⟩; simp only [←set_belong_set_to_class]; intro h1;
+    have h1 := ord_le_lt_trans (ord_infinite_iff.1 κ.prop.2) h1; exact belong_to_self h1;
   rw [←Aleph_spec.1.2, has_function.proof_range] at h1; rcases h1 with ⟨x, h1⟩;
   have h2 := (has_function.proof_domain _).2 ⟨_, h1⟩;
   rw [←Aleph_spec.1.1.2] at h2; let x : ordinal := ⟨x, h2⟩; use x;
@@ -864,8 +962,8 @@ theorem aleph_value_exists {κ : cardinal} : ω ≤ κ.val → ∃ α, κ = ℵ_
 theorem aleph_0_eq_omega : ℵ_(o0).val = ω := by
   apply ord_le_antisymm; swap; · exact aleph_range;
   -- have h5 := @aleph_ord o0;
-  let h1 : cardinal := ⟨ω, omega_is_card⟩; have h2 : ω = h1.val := rfl;
-  have h3 := aleph_value_exists (ord_le.2 (Or.intro_right _ h2));
+  let h1 : inf_card := ⟨ω, omega_is_card, by rw [ord_infinite_iff]⟩; have h2 : ω = h1.val := rfl;
+  have h3 := aleph_value_exists h1;
   rcases h3 with ⟨α, h3⟩; have h4 := aleph_ord_le.1 (@ord_ge_0 α);
   rw [←h3] at h4; assumption;
 theorem sup_card_is_card {a : set} (h : a s⊆ card_class) : ∃ h : Ord(∪(a)), is_card ⟨∪(a), h⟩ := by
@@ -885,19 +983,20 @@ theorem sup_card_is_card {a : set} (h : a s⊆ card_class) : ∃ h : Ord(∪(a))
 theorem aleph_continue {α : ordinal} (h : α.val ∈ K2) : ⋃(γ oo∈ α, ℵ_(γ).val) = ℵ_(α).val := by
   apply Subtype.ext; rw [←ordinal_union_axiom];
   have h1 : ordinal_replacement α fun γ _y ↦ _y = ℵ_(γ).val.val s⊆ card_class;
-  · intro x hx; rw [ordinal_replacement_axiom] at hx; swap; · simp;
-    rcases hx with ⟨y, hx1, hx2⟩; subst x; exact ⟨ℵ_(y).val.prop, ℵ_(y).prop⟩;
+  · intro x hx; rw [mem_ordinal_replacement] at hx;
+    rcases hx with ⟨y, hx1, hx2⟩; subst x; exact ⟨ℵ_(y).val.prop, ℵ_(y).prop.1⟩;
   rcases sup_card_is_card h1 with ⟨he1, he2⟩;
   let s : cardinal := ⟨⟨∪(ordinal_replacement α fun γ _y ↦ _y = ℵ_(γ).val.val), he1⟩, he2⟩;
-  suffices hs : s = ℵ_(α); · exact Subtype.coe_inj.2 (Subtype.coe_inj.2 hs);
+  suffices hs : s = ℵ_(α).to_card; · exact Subtype.coe_inj.2 (Subtype.coe_inj.2 hs);
   have hs : s.val = ⋃(γ oo∈ α, ℵ_(γ).val); · apply Subtype.ext; rw [←ordinal_union_axiom];
   have h2 : ω ≤ s.val;
   · have ha := ord_k2_gt_0 h; rw [hs, ←aleph_0_eq_omega];
     exact @ord_union_le_sup α (fun a ↦ ℵ_(a).val) o0 ha;
-  rcases aleph_value_exists h2 with ⟨β, he⟩; rw [he] at hs; rw [he];
-  apply Subtype.coe_inj.1; apply ord_le_antisymm;
+  rcases aleph_value_exists (s.to_inf_card h2) with ⟨β, he⟩;
+  have he : s.val = ℵ_(β).val := Subtype.coe_inj.2 he; rw [he] at hs;
+  apply Subtype.ext; rw [he]; apply ord_le_antisymm;
   · rw [hs]; apply ord_union_sup_le; intro γ h3; apply ord_lt_le; exact aleph_ord_lt.1 h3;
-  rw [←aleph_ord_le]; intro γ hg; let γ : ordinal := ⟨γ, ord_element_ord _ _ hg⟩;
+  rw [to_card_val_eq, ←aleph_ord_le]; intro γ hg; let γ : ordinal := ⟨γ, ord_element_ord _ _ hg⟩;
   have hg : γ < α := hg; convert_to γ < β; · rfl;
   rw [aleph_ord_lt, hs]; have hg2 := @ord_union_le_sup α (fun a ↦ ℵ_(a).val) _ hg;
   rw [ord_le] at hg2; cases hg2 with
@@ -1193,7 +1292,7 @@ theorem cof_aleph {α} (h : α.val ∈ K2) : cof ℵ_(α).val α := by
   symm; rw [←aleph_continue h, ←extensionality_belong]; intro x;
   unfold ordinal_function_union make_union_reloaded;
   simp only [has_union.proof_union, has_function.proof_range, Class_to_set_ext, pair_in_restrict,
-    and_imp, forall_eq_apply_imp_iff, imp_self, implies_true, ordinal_replacement_axiom2,
+    and_imp, forall_eq_apply_imp_iff, imp_self, implies_true, mem_ordinal_replacement2,
     ↓existsAndEq, true_and, and_true]; constructor <;> intro h1;
   · rcases h1 with ⟨c, h1, y, h2, h3⟩; have h4 := (has_function.proof_domain _).2 ⟨_, h2⟩;
     rw [←Aleph_spec.1.1.2] at h4; let y : ordinal := ⟨y, h4⟩; use succ y;
@@ -1208,6 +1307,11 @@ noncomputable def cfo (α : ordinal) : ordinal := Classical.choose
 theorem cfo_spec : cof α (cfo α) ∧ ∀ γ, cof α γ → cfo α ≤ γ :=
   Classical.choose_spec (minimal_ordinal ⟨_, cof_refl⟩)
 
+def lim_ord := {α : ordinal // α ∈ K2}
+theorem lim_ord_cf_inf {α : lim_ord} : infinite (cfo α.val).val := by
+  rw [ord_infinite_iff]; apply ord_k2_ge_omega;
+  rw [ord_belonged_to, ←cof_k2 cfo_spec.1]; exact α.prop;
+
 theorem cf_is_card {α} : is_card (cfo α) := by
   rw [cardinal_card];
   suffices h : ∀ γ : ordinal, γ.val s≅ (cfo α).val → cfo α ≤ γ;
@@ -1217,13 +1321,30 @@ theorem cf_is_card {α} : is_card (cfo α) := by
   rcases cf_lt2 (ord_lt_le h2) h1 with ⟨δ, h3, h4⟩;
   have h4 := cof_trans cfo_spec.1 h4;
   have h5 := cfo_spec.2 _ h4; exact belong_to_self (ord_lt_le_trans h2 (ord_le_trans h5 h3))
-noncomputable def cf (α : ordinal) : cardinal := ⟨cfo α, cf_is_card⟩
+noncomputable def cf (α : lim_ord) : inf_card := ⟨cfo α.val, cf_is_card, lim_ord_cf_inf⟩
 notation "cf(" α ")" => cf α
 
-theorem cof_cf_le {α β} : cof α β → cf(α).val ≤ β := cfo_spec.2 _
+theorem cof_cf_le {α β} : cof α.val β → cf(α).val ≤ β := cfo_spec.2 _
 
-def regular (α : ordinal) := cf(ℵ_(α).val) = ℵ_(α)
-def singular (α : ordinal) := cf(ℵ_(α).val) < ℵ_(α)
+theorem inf_card_is_lim_ord {α : inf_card} : α.val ∈ K2 := by
+  have h := k12 α.val; cases h with
+  | inr => assumption;
+  | inl h => exfalso; cases h with
+    | inl h => have h1 := α.prop; rw [h] at h1; apply h1.2;
+                apply lt_omega_finite; exact ord_k2_gt_0 omega_in_K2;
+    | inr h =>
+      rcases h with ⟨β, h⟩; have h1 := α.prop; rw [h] at h1;
+      have h2 := ord_infinite_iff.1 h1.2; have h3 := cardinal_card.1 h1.1;
+      rw [ord_le, or_iff_not_imp_right] at h2;
+      have h4 := ord_lt_succ_iff.1 (h2 (K2_not_succ omega_in_K2));
+      have h5 := inf_ord_eqv_add_one h4;
+      have h6 := (@card_def1 (succ β).val ⟨_, eqv_refl⟩).2; rw [←h3] at h6;
+      have h6 := h6 β (eqv_symm h5); exact belong_to_self (ord_lt_le_trans ord_lt_succ h6);
+@[implicit_reducible] instance inf_card.coe_lim_ord : Coe inf_card lim_ord :=
+  ⟨fun α ↦ ⟨α.val, inf_card_is_lim_ord⟩⟩
+
+def regular (α : ordinal) := cf(ℵ_(α)) = ℵ_(α)
+def singular (α : ordinal) := cf(ℵ_(α)) < ℵ_(α)
 def weakly_inaccessible (α : ordinal) := α.val ∈ K2 ∧ regular α
 def inaccessible (α : ordinal) := weakly_inaccessible α ∧
   ∀ x, |x| < ℵ_(α).val → |P(x)| < ℵ_(α).val
@@ -1233,7 +1354,8 @@ theorem weakly_inaccessible_fix_point {α : ordinal} (h : weakly_inaccessible α
   apply ord_le_antisymm; swap;
   · have h2 := monotone_ge_value aleph_smo α; simp only [← Aleph_spec.1.1.2] at h2;
     have h2 := h2 α.prop; exact h2;
-  rcases h with ⟨h1, h2⟩; have h3 := cof_cf_le (cof_aleph h1);
-  unfold regular at h2; rwa [h2] at h3;
+  rcases h with ⟨h1, h2⟩; have h4 := cof_aleph h1;
+  have h5 : ℵ_(α).val = ℵ_(α).to_lim_ord.val := rfl; rw [h5] at h4;
+  have h3 := cof_cf_le h4; unfold regular at h2; rwa [←h2];
 
 end zfset

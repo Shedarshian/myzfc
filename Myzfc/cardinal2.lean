@@ -14,6 +14,8 @@ def close_unbound_sset (c : set) (κ : cardinal) := unbounded_sset c κ ∧ clos
 def stationary_sset (s : set) (κ : cardinal) := s s⊆ κ.val ∧
     ∀ c : set, close_unbound_sset c κ → s ∩ c ≠ s0
 def mahlo (α : ordinal) := inaccessible α ∧ stationary_sset
-  {ℵ_(γ).val.val | γ o∈ α | regular γ} ℵ_(α)
+  {ℵ_(γ).val.val // γ o∈ α // regular γ} ℵ_(α)
+
+
 
 end zfset

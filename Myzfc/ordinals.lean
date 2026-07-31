@@ -545,7 +545,7 @@ theorem k12 (α : ordinal) : (α = o0 ∨ ∃ β : ordinal, α = succ β) ∨ α
   right; constructor; · assumption;
   exact α.prop;
 theorem ord_in_k2 {α : ordinal} :
-  α.val ∈ K2 ↔ ¬α = o0 ∧ ¬∃ β : ordinal, α = succ β := by
+  α ∈ K2 ↔ ¬α = o0 ∧ ¬∃ β : ordinal, α = succ β := by
   unfold K2; unfold_projs; erw [proof_in_Class]; simp only [not_exists];
   constructor <;> intro h;
   · have h := h.2; unfold K1 at h; erw [proof_in_Class] at h;
@@ -653,25 +653,25 @@ by
     rfl;
 noncomputable def succ_nat (n : nat) : nat := ⟨succ n.val, peano2 n⟩
 
-theorem peano3 (i : nat) : succ i.val ≠ o0 :=
+theorem peano3 (i : ordinal) : succ i ≠ o0 :=
 by
   intro x;
-  rw [← @empty_false i.val.val];
+  rw [← @empty_false i.val];
   have g : o0.val = s0; · rfl;
   rw [← g]; rw [← x];
   erw [has_binary_union.proof_union];
   simp;
 
-theorem peano4 (i : nat) (j : nat) : succ i.val = succ j.val ↔ i = j :=
+theorem peano4 (i : ordinal) (j : ordinal) : succ i = succ j ↔ i = j :=
 by
   constructor <;> intro h; swap;
   · rw [h];
-  have ha := @ord_lt_succ i.val;
+  have ha := @ord_lt_succ i;
   rw [h, ord_lt_succ_iff, ord_le] at ha;
-  have hb := @ord_lt_succ j.val;
+  have hb := @ord_lt_succ j;
   rw [← h, ord_lt_succ_iff, ord_le] at hb;
   cases' ha with ha ha <;> cases' hb with hb hb;
-  rotate_right; exact Subtype.ext ha;
+  rotate_right; exact ha;
   all_goals exfalso;;
   · exact belong_to_2 ha hb;
   · rw [hb] at ha; exact belong_to_self ha;
@@ -715,6 +715,12 @@ theorem nat.induction {P : nat → Prop} (n : nat) (h0 : P n0)
   have hn := hn n.val.val n.prop;
   rcases hn with ⟨_, _, hn⟩; exact hn;
 
+theorem nat_two_type {n : ordinal} (h : n ∈ ω) : n = o0 ∨ ∃ y, n = succ y := by
+  have h1 := ((axiom_of_infinity _).1 h).2; unfold K1 at h1; rw [proof_in_Class] at h1;
+  rcases h1 with ⟨_, h1⟩; cases h1 with
+  | inl => left; apply Subtype.ext; assumption;
+  | inr h1 => right; rcases h1 with ⟨b, h1⟩; use b; exact h1;
+
 theorem omega_in_K2 : ω ∈ K2 :=
 by
   constructor; · exact ω.prop;
@@ -723,6 +729,10 @@ by
   erw [axiom_of_infinity];
   rw [And.comm]; use h;
   exact omega_subset_K1;
+theorem K2_not_succ {α β : ordinal} : α ∈ K2 → α ≠ succ β := by
+  intro h1 h; rw [h] at h1; unfold K2 at h1;
+  rw [ord_belonged_to, class_sub_is_sub] at h1; apply h1.2; unfold K1;
+  use (succ β).prop; right; use β; rfl;
 
 theorem transfinite_induction (A : Class) : A s⊆ On → (∀ α : ordinal, α s⊆ A → α ∈ A) → A = On :=
 by
@@ -1067,13 +1077,13 @@ instance ordset.to_has_belong : has_belong ordset :=
   by {intros; rfl},
   fun α => True
 ⟩
+theorem belong_to_ordset {x : set} {α : ordinal} : x ∈ α.to_ordset ↔ x ∈ α := by rfl;
 
 open Classical in
 noncomputable def ordinal_replacement : ordset → (ordinal → set → Prop) → set :=
   fun a f => make_replacement a.val (fun x y => ∃ h : Ord(x), f ⟨x, h⟩ y)
-notation "{" y " | " x " o∈ " a "}" => (ordinal_replacement
-  a (fun x _y => _y = y))
-theorem ordinal_replacement_axiom (a) (f : ordinal → set → Prop) :
+notation "{" y " // " x " o∈ " a "}" => (ordinal_replacement a (fun x _y => _y = y))
+theorem mem_ordinal_replacement0 (a) (f : ordinal → set → Prop) :
   (∀ u v w, f u v ∧ f u w → v = w) →
   ∀ y : set, y ∈ ordinal_replacement a f ↔ ∃ x, x ∈ a ∧ f x y := by
   intro h y; erw [axiom_of_replacement];
@@ -1086,7 +1096,7 @@ noncomputable def ordinal_replacement2 : ordinal →
   (ordinal → ordinal → Prop) → set :=
   fun α f => make_replacement α.val (fun x y => ∃ h : Ord(x), ∃ h2 : Ord(y),
     f ⟨x, h⟩ ⟨y, h2⟩)
-theorem ordinal_replacement_axiom2 (a) (f : ordinal → ordinal → Prop) :
+theorem mem_ordinal_replacement2 (a) (f : ordinal → ordinal → Prop) :
   (∀ u v w, f u v ∧ f u w → v = w) →
   ∀ y : set, y ∈ ordinal_replacement2 a f ↔ ∃ x y2, x ∈ a ∧ f x y2 ∧ y2.val = y := by
   intro h y; erw [axiom_of_replacement];
@@ -1096,7 +1106,7 @@ theorem ordinal_replacement_axiom2 (a) (f : ordinal → ordinal → Prop) :
   · use x.val; use h2.1; use x.prop; rw [←h2.2.2]; use h1.prop; use h2.2.1
   intro u v w ⟨h1, h2⟩; have h := h _ _ _ ⟨h1.2.2, h2.2.2⟩;
   exact Subtype.coe_inj.2 h;
-theorem ordinal_replacement_axiom3 (a) (f : ordinal → ordinal → Prop) :
+theorem mem_ordinal_replacement3 (a) (f : ordinal → ordinal → Prop) :
   (∀ u v w, f u v ∧ f u w → v = w) →
   ∀ y : ordinal, y ∈ ordinal_replacement2 a f ↔ ∃ x y2, x ∈ a ∧ f x y2 ∧ y2 = y := by
   intro h y; erw [axiom_of_replacement];
@@ -1112,15 +1122,15 @@ noncomputable def ordinal_function_union (a : ordinal) (f : ordinal → ordinal)
     apply ord_class_union_ordinal; intro x h;
     have h2 : ∀ (u v w : ordinal), v = f u ∧ w = f u → v = w;
     · intros; aesop;
-    have h1 := (ordinal_replacement_axiom2 a (fun x _y ↦ _y = f x) h2 x).1 h;
+    have h1 := (mem_ordinal_replacement2 a (fun x _y ↦ _y = f x) h2 x).1 h;
     rcases h1 with ⟨x1, y2, h1⟩; rw [←h1.2.2]; exact y2.prop;
   ⟩
 notation "⋃(" x " oo∈ " a ", " y ")" => ordinal_function_union a (fun x => y)
 theorem ordinal_union_axiom (β : ordinal) (f : ordinal → ordinal) :
-  ∪({(f γ).val | γ o∈ β}) = ⋃(γ oo∈ β, f γ).val := by
+  ∪({(f γ).val // γ o∈ β}) = ⋃(γ oo∈ β, f γ).val := by
   unfold ordinal_function_union; simp only; congr;
   rw [←extensionality_belong]; intro a;
-  rw [ordinal_replacement_axiom, ordinal_replacement_axiom2];
+  rw [mem_ordinal_replacement0, mem_ordinal_replacement2];
   · simp only [↓existsAndEq, true_and];
     conv => lhs; rhs; ext; rhs; rw [Eq.comm];
     rfl;
@@ -1165,14 +1175,14 @@ theorem trans_func_rec2 {H : Class} {a : set} {β : ordinal} :
   unfold K1; constructor;
   · right; use β; rfl;
 theorem trans_func_rec3 {H : Class} {a : set} {β : ordinal} (h : β ∈ K2) :
-  (trans_rec_func H a)[[β.val]] = ∪({(trans_rec_func H a)[[γ.val]] | γ o∈ β}) := by
+  (trans_rec_func H a)[[β.val]] = ∪({(trans_rec_func H a)[[γ.val]] // γ o∈ β}) := by
   unfold trans_rec_func;
   rw [transfinite_recursion2]; swap;
   · exact restrict_is_set transfinite_recursion1.1;
   rw [unfold_trans_rec_func_h3];
   · congr; rw [←extensionality_belong]; intro x;
     rw [has_function.proof_range];
-    rw [ordinal_replacement_axiom];
+    rw [mem_ordinal_replacement0];
     conv =>
       lhs; rhs; ext; rw [set_belong_to_class, Class_to_set_to_Class_has_belong];
       rw [pair_in_restrict, And.comm]; rhs;
@@ -1215,7 +1225,7 @@ theorem ordinal_union_lt {α β : ordinal} {f : ordinal → ordinal} :
     lhs; unfold ordinal_function_union; unfold LT.lt ordinal.to_has_lt id;
     erw [ord_belong]; simp only;
     erw [has_union.proof_union]; rhs; ext; rw [And.comm]; lhs;
-    rw [ordinal_replacement_axiom2 _ _ h]; simp only [↓existsAndEq, true_and];
+    rw [mem_ordinal_replacement2 _ _ h]; simp only [↓existsAndEq, true_and];
   simp only [↓existsAndEq, and_true]; rfl;
 theorem ordinal_union_set {α : set} {β : ordinal} {f : ordinal → ordinal} :
   α ∈ ⋃(γ oo∈ β, f γ) ↔ ∃ γ o∈ β, α ∈ f γ := by
@@ -1225,13 +1235,13 @@ theorem ordinal_union_set {α : set} {β : ordinal} {f : ordinal → ordinal} :
     lhs; unfold ordinal_function_union; unfold LT.lt ordinal.to_has_lt id;
     erw [set_ord_belong]; simp only;
     erw [has_union.proof_union]; rhs; ext; rw [And.comm]; lhs;
-    rw [ordinal_replacement_axiom2 _ _ h]; simp only [↓existsAndEq, true_and];
+    rw [mem_ordinal_replacement2 _ _ h]; simp only [↓existsAndEq, true_and];
   simp only [↓existsAndEq, and_true]; rfl;
 
 theorem ordinal_set_replace {β : ordinal} {f g : ordinal → ordinal} :
-  (∀ γ o∈ β, f γ = g γ) → {(f γ).val | γ o∈ β} = {(g γ).val | γ o∈ β} := by
+  (∀ γ o∈ β, f γ = g γ) → {(f γ).val // γ o∈ β} = {(g γ).val // γ o∈ β} := by
   intro h; rw [←extensionality_belong]; intro a;
-  rw [ordinal_replacement_axiom, ordinal_replacement_axiom];
+  rw [mem_ordinal_replacement0, mem_ordinal_replacement0];
   · apply exists_congr; simp only [and_congr_right_iff]; intro b hb; rw [h b hb];
   all_goals simp only [and_imp, forall_eq_apply_imp_iff, imp_self, implies_true];
 theorem ordinal_union_replace {β : ordinal} {f g : ordinal → ordinal} :
@@ -1239,8 +1249,8 @@ theorem ordinal_union_replace {β : ordinal} {f g : ordinal → ordinal} :
   intro h; apply Subtype.ext; rw [←ordinal_union_axiom, ←ordinal_union_axiom];
   congr 1; exact ordinal_set_replace h;
 
-theorem ordinal_replacement_id {β} : {γ.val | γ o∈ β} = β.val := by
-  rw [←extensionality_belong]; intro a; rw [ordinal_replacement_axiom];
+theorem ordinal_replacement_id {β} : {γ.val // γ o∈ β} = β.val := by
+  rw [←extensionality_belong]; intro a; rw [mem_ordinal_replacement0];
   constructor <;> intro hx;
   · rcases hx with ⟨x, h1, h2⟩; rw [h2]; exact h1;
   · use ⟨a, β.prop a hx⟩; use hx;
@@ -1265,7 +1275,7 @@ theorem ord_union_le_sup {β : ordinal} {f : ordinal → ordinal} :
   intro α ha x hx;
   convert_to x ∈ ⋃(γ oo∈ β, f γ).val; · rfl;
   erw [←ordinal_union_axiom, has_union.proof_union];
-  use (f α).val; use hx; rw [ordinal_replacement_axiom]; · use α; use ha;
+  use (f α).val; use hx; rw [mem_ordinal_replacement0]; · use α; use ha;
   simp only [and_imp, forall_eq_apply_imp_iff, imp_self, implies_true];
 
 theorem ord_union_sup_le {β M : ordinal} {f : ordinal → ordinal} :
@@ -1273,7 +1283,7 @@ theorem ord_union_sup_le {β M : ordinal} {f : ordinal → ordinal} :
   intro h x hx;
   erw [set_ord_belong, ←ordinal_union_axiom, has_union.proof_union] at hx;
   rcases hx with ⟨c, h3, hx⟩;
-  rw [ordinal_replacement_axiom] at hx;
+  rw [mem_ordinal_replacement0] at hx;
   · rcases hx with ⟨y, h4, hx⟩; subst c;
     exact h y h4 x h3;
   simp only [and_imp, forall_eq_apply_imp_iff, imp_self, implies_true];
@@ -1300,6 +1310,13 @@ theorem minimal_ordinal {f : ordinal → Prop} :
 theorem ord_k2_gt_0 {α : ordinal} (h : α ∈ K2) : o0 < α := by
   erw [ord_in_k2, Eq.comm] at h;
   exact ord_lt.2 ⟨ord_ge_0, h.1⟩;
+theorem ord_k2_ge_omega {α : ordinal} (h : α ∈ K2) : ω ≤ α := by
+  by_contra h1; rw [ord_nle] at h1; rw [ord_in_k2] at h;
+  have h2 := ((axiom_of_infinity _).1 h1).2; unfold K1 at h2;
+  rw [proof_in_Class] at h2; rcases h2 with ⟨_, h2⟩;
+  rw [←not_or] at h; apply h; cases h2 with
+  | inl => left; apply Subtype.ext; assumption;
+  | inr h2 => right; rcases h2 with ⟨β, h2⟩; use β; apply Subtype.ext; exact Subtype.coe_inj.2 h2;
 
 theorem nat_induction (A : ordinal → Prop) : A o0 →
   (∀ i o∈ ω, A i → A (succ i)) → (∀ i o∈ ω, A i) := by
@@ -2065,9 +2082,24 @@ noncomputable def ordinal_separation : ordset → (ordinal → Prop) → ordset 
   fun a f => ⟨set_separation a.val (fun x ↦ ∃ h : Ord(x), f ⟨x, h⟩), by
     intro x hx; unfold set_separation at hx; rw [intersection_def] at hx; exact hx.2.1;
   ⟩
-notation "{" α " o∈ " a " | " f "}" => (ordinal_separation a fun α ↦ f)
-notation "{" y " | " α " o∈ " a " | " f "}" => {y | α o∈ {α o∈ a | f}}
+notation "{" α " o∈ " a " // " f "}" => (ordinal_separation a fun α ↦ f)
+notation "{" y " // " α " o∈ " a " // " f "}" => {y // α o∈ {α o∈ a // f}}
+#check fun α : ordinal ↦ {γ.val // γ o∈ α // γ < α}
 
-#check fun α : ordinal ↦ {γ.val | γ o∈ α | γ < α}
+theorem mem_ordinal_separation {f : ordinal → Prop} :
+  α ∈ {γ o∈ a // f γ} ↔ α ∈ a ∧ f α := by
+  unfold ordinal_separation;
+  convert_to (α.val ∈ set_separation a.val fun x ↦ ∃ (h : Ord(x)), f ⟨x, h⟩) ↔
+    (α.val ∈ a.val ∧ f α); any_goals rfl;
+  unfold set_separation; rw [intersection_def]; simp only [and_congr_right_iff]; intro;
+  rw [proof_in_Class]; simp only [Subtype.coe_eta, exists_prop, and_iff_right_iff_imp];
+  intro; exact α.prop;
+theorem mem_ordinal_replacement {f : ordinal → set} :
+  x ∈ {f γ // γ o∈ a} ↔ ∃ γ, x = f γ ∧ γ ∈ a := by
+  rw [mem_ordinal_replacement0]; swap; · simp;
+  conv => lhs; rhs; ext; rw [And.comm];
+theorem mem_ordinal_repsep {f : ordinal → Prop} {g : ordinal → set} :
+  x ∈ {g γ // γ o∈ a // f γ} ↔ ∃ γ, x = g γ ∧ γ ∈ a ∧ f γ := by
+  simp only [mem_ordinal_replacement, mem_ordinal_separation];
 
 end zfset
