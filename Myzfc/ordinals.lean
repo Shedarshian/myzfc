@@ -2132,7 +2132,7 @@ theorem mem_ordinal_repsep {f : ordinal → Prop} {g : ordinal → set} :
   x ∈ {g γ // γ o∈ a // f γ} ↔ ∃ γ, x = g γ ∧ γ ∈ a ∧ f γ := by
   simp only [mem_ordinal_replacement, mem_ordinal_separation];
 theorem mem_ordinal_repsep_ord {f : ordinal → Prop} {g : ordinal → ordinal} :
-  x ∈ {g γ o// γ o∈ a // f γ} ↔ ∃ γ, x = g γ ∧ γ ∈ a ∧ f γ := by
+  x ∈ {g γ o// γ o∈ a // f γ} ↔ ∃ γ, ∃ hx : Ord(x), ⟨x, hx⟩ = g γ ∧ γ ∈ a ∧ f γ := by
   simp only [mem_ordinal_replacement_ord, mem_ordinal_separation];
 
 noncomputable def ord_set_to_func (a : ordset) : set :=
