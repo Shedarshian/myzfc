@@ -46,7 +46,7 @@ theorem AC_to_WOP (ac : AC) : WOP := by
   rw [Class_to_set_ext, h5, ←set_belong_set_to_class]
 theorem WOP_to_AC (wop : WOP) : AC := by
   intro a; rcases wop ∪(a) with ⟨f, h1, h2⟩;
-  have h4 := fun x hx h3 ↦ well_order_minimal ⟨h1, h2⟩ _ ⟨@unionset_subseteq _ _ _ a x hx, h3⟩;
+  have h4 := fun x hx h3 ↦ well_order_minimal ⟨h1, h2⟩ _ ⟨@unionset_subseteq _ _ _ _ _ a x hx, h3⟩;
   let f2 : Class := fun s ↦ ∃ x y : set, s = s⟨x, y⟩ ∧ x ∈ a ∧ x ≠ s0
        ∧ y ∈ x ∧ x ∩ W(f⁻¹ Γ s{y}) = s0;
   have hf : Fnc(f2);
@@ -80,7 +80,7 @@ theorem WOP_to_AC (wop : WOP) : AC := by
   have hf6 := value_func2 hf5 hf4; rw [Class_to_set_ext] at hf6;
   conv at hf6 => rhs; unfold f2;
   rw [proof_in_Class] at hf6; simp only [ordered_pair_eq_iff, ne_eq,
-    ↓existsAndEq, and_true, exists_eq_left'] at hf6; exact hf6.2.2.1
+    ↓existsAndEq, and_true, exists_eq_left'] at hf6; exact hf6.2.2.1;
 theorem AC_eq_WOP : AC ↔ WOP := Iff.intro AC_to_WOP WOP_to_AC
 
 theorem eqv_ord [ac : Fact AC] {a : set} : ∃ α : ordinal, α.val s≅ a :=

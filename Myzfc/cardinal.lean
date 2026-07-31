@@ -793,7 +793,6 @@ theorem hartogs_ordinal_not_injects {a : set} :
   have hmem := ordinal_injects_mem_hartogs_type h
   let U : set := ∪(hartogs_type_set a)
   have hU : U ∈ ∪(hartogs_type_set a) := by
-    unfold make_union_reloaded
     rw [has_union.proof_union]
     use (hartogs_ordinal a).val
     constructor
@@ -827,6 +826,30 @@ def cardinal.to_inf_card {κ : cardinal} (h : ω ≤ κ.val) : inf_card :=
   ⟨κ.val, ⟨κ.prop, ord_infinite h⟩⟩
 theorem to_card_val_eq {α : inf_card} : α.to_card.val = α.val := rfl
 theorem to_inf_card_val_eq {α : cardinal} {h : ω ≤ α.val} : (α.to_inf_card h).val = α.val := rfl
+noncomputable instance : has_belong cardinal := ⟨
+  fun x y => y ∈ x.val,
+  by {
+    intros x y; rw [extensionality_belong, Iff.comm];
+    exact Subtype.ext_iff
+  },
+  fun α => α.val.val.to_Class,
+  by {intros; rfl},
+  fun α => True
+⟩
+noncomputable instance : has_belong inf_card := ⟨
+  fun x y => y ∈ x.val,
+  by {
+    intros x y; rw [extensionality_belong, Iff.comm];
+    exact Subtype.ext_iff
+  },
+  fun α => α.val.val.to_Class,
+  by {intros; rfl},
+  fun α => True
+⟩
+theorem belong_to_cardinal [has_belonged_to α] {x : set} {κ : cardinal} : x ∈ κ ↔ x ∈ κ.val :=
+  by rfl
+theorem belong_to_inf_card [has_belonged_to α] {x : set} {κ : inf_card} : x ∈ κ ↔ x ∈ κ.val :=
+  by rfl
 
 theorem cardinal_card {α : ordinal} : is_card α ↔ α = |α.val| := by
   constructor <;> intro h; swap; · use α.val;
@@ -1242,7 +1265,7 @@ theorem cof_union {α β : ordinal} (h1 : α.val ∈ K2) (h2 : cof α β) :
   have hb := (cof_k2 h2).1 h1;
   rcases h2 with ⟨h2, f, h3, ⟨h4, h5⟩, h6⟩; use f; use h3; use h4;
   rw [←extensionality_belong]; intro x;
-  unfold make_union_reloaded; rw [has_union.proof_union];
+  rw [has_union.proof_union];
   constructor <;> intro h;
   · let x : ordinal := ⟨x, ord_element_ord _ _ h⟩; rcases h6 x h with ⟨γ, h7, h8⟩;
     have h7' := h7; rw [←h4.2] at h7'; have h7' : succ γ ∈ β.val := ord_k2_succ_in hb h7';
@@ -1258,7 +1281,7 @@ theorem cof_union2 {α β : ordinal} (h1 : β.val ∈ K2) :
     have h5 := monotone_ge_value h2 (succ x); simp only [← h3.2] at h5;
     have h5 := h5 (ord_k2_succ_in h1 hx); have h5 := ord_lt_le_trans ord_lt_succ h5;
     convert_to x.val ∈ α.val; · rfl;
-    rw [h4, make_union_reloaded, has_union.proof_union];
+    rw [h4, has_union.proof_union];
     use f[[(succ x).val]]; use h5;
     refine (has_function.proof_range _).2 ⟨_, value_func2 h2.1.1.2 ?_⟩;
     rw [←h3.2]; exact ord_k2_succ_in h1 hx;
@@ -1266,13 +1289,13 @@ theorem cof_union2 {α β : ordinal} (h1 : β.val ∈ K2) :
     · use h3; intro x hx; rw [has_function.proof_range] at hx; rcases hx with ⟨y, hx⟩;
       have dy := (has_function.proof_domain _).2 ⟨_, hx⟩; rw [←h3.2] at dy;
       let y : ordinal := ⟨y, ord_element_ord _ _ dy⟩;
-      rw [h4, make_union_reloaded, has_union.proof_union];
+      rw [h4, has_union.proof_union];
       use f[[(succ y).val]]; have d1 := h2.2 y; simp only [←h3.2] at d1;
       have d1 := d1 dy (succ y) (ord_k2_succ_in h1 dy) ord_lt_succ;
       rw [value_func h2.1.1.2 hx] at d1; use d1;
       refine (has_function.proof_range _).2 ⟨_, value_func2 h2.1.1.2 ?_⟩;
       rw [←h3.2]; exact ord_k2_succ_in h1 dy;
-    intro γ d1; rw [ord_belong, h4, make_union_reloaded, has_union.proof_union] at d1;
+    intro γ d1; rw [ord_belong, h4, has_union.proof_union] at d1;
     rcases d1 with ⟨c, d1, d2⟩; rw [has_function.proof_range] at d2;
     rcases d2 with ⟨w, d2⟩;
     have dy := (has_function.proof_domain _).2 ⟨_, d2⟩; have dy' := dy;
@@ -1290,7 +1313,7 @@ theorem cof_aleph {α} (h : α.val ∈ K2) : cof ℵ_(α).val α := by
     congr; rw [intersection_to_class, intersection_comm, ←subseteq_iff_eq_intersection];
     intro x hx; exact ord_element_ord _ _ hx;
   symm; rw [←aleph_continue h, ←extensionality_belong]; intro x;
-  unfold ordinal_function_union make_union_reloaded;
+  unfold ordinal_function_union;
   simp only [has_union.proof_union, has_function.proof_range, Class_to_set_ext, pair_in_restrict,
     and_imp, forall_eq_apply_imp_iff, imp_self, implies_true, mem_ordinal_replacement2,
     ↓existsAndEq, true_and, and_true]; constructor <;> intro h1;
@@ -1311,6 +1334,17 @@ def lim_ord := {α : ordinal // α ∈ K2}
 theorem lim_ord_cf_inf {α : lim_ord} : infinite (cfo α.val).val := by
   rw [ord_infinite_iff]; apply ord_k2_ge_omega;
   rw [ord_belonged_to, ←cof_k2 cfo_spec.1]; exact α.prop;
+instance : has_belong lim_ord :=
+⟨
+  fun x y => y ∈ x.val,
+  by {
+    intros x y; rw [extensionality_belong, Iff.comm];
+    exact Subtype.ext_iff
+  },
+  fun α => α.val.val.to_Class,
+  by {intros; rfl},
+  fun α => True
+⟩
 
 theorem cf_is_card {α} : is_card (cfo α) := by
   rw [cardinal_card];
@@ -1340,12 +1374,12 @@ theorem inf_card_is_lim_ord {α : inf_card} : α.val ∈ K2 := by
       have h5 := inf_ord_eqv_add_one h4;
       have h6 := (@card_def1 (succ β).val ⟨_, eqv_refl⟩).2; rw [←h3] at h6;
       have h6 := h6 β (eqv_symm h5); exact belong_to_self (ord_lt_le_trans ord_lt_succ h6);
-@[implicit_reducible] instance inf_card.coe_lim_ord : Coe inf_card lim_ord :=
+@[reducible] instance inf_card.coe_lim_ord : Coe inf_card lim_ord :=
   ⟨fun α ↦ ⟨α.val, inf_card_is_lim_ord⟩⟩
 
 def regular (α : ordinal) := cf(ℵ_(α)) = ℵ_(α)
 def singular (α : ordinal) := cf(ℵ_(α)) < ℵ_(α)
-def weakly_inaccessible (α : ordinal) := α.val ∈ K2 ∧ regular α
+def weakly_inaccessible (α : ordinal) := α ∈ K2 ∧ regular α
 def inaccessible (α : ordinal) := weakly_inaccessible α ∧
   ∀ x, |x| < ℵ_(α).val → |P(x)| < ℵ_(α).val
 
@@ -1355,7 +1389,7 @@ theorem weakly_inaccessible_fix_point {α : ordinal} (h : weakly_inaccessible α
   · have h2 := monotone_ge_value aleph_smo α; simp only [← Aleph_spec.1.1.2] at h2;
     have h2 := h2 α.prop; exact h2;
   rcases h with ⟨h1, h2⟩; have h4 := cof_aleph h1;
-  have h5 : ℵ_(α).val = ℵ_(α).to_lim_ord.val := rfl; rw [h5] at h4;
+  have h5 : ℵ_(α).val = (ℵ_(α) : lim_ord).val := rfl; rw [h5] at h4;
   have h3 := cof_cf_le h4; unfold regular at h2; rwa [←h2];
 
 end zfset

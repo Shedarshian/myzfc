@@ -316,20 +316,16 @@ axiom axiom_of_union {a} :
 def make_union_class (A : Class) : Class :=
 fun x => ∃ y : set, x ∈ y ∧ y ∈ A
 
-class has_union (α : Type u) [has_belong α] where
-(union : α → α)
+class has_union (α) (β : outParam (Type _)) [has_belong α] [has_belong β] where
+(union : α → β)
 (proof_union {a : α} {b : set} : b ∈ union a ↔ ∃ c : set, b ∈ c ∧ c ∈ a )
 
-noncomputable instance set.to_has_union : has_union set :=
+noncomputable instance set.to_has_union : has_union set set :=
 ⟨ make_union, @axiom_of_union ⟩
-instance Class.to_make_union : has_union Class :=
+instance Class.to_make_union : has_union Class Class :=
 ⟨ make_union_class, by {intros; rfl} ⟩
-def make_union_reloaded
-  {α : Type u} [has_belong α] [has_union α] (a : α)
-  : α :=
-has_union.union a
 
-notation "∪(" a ")" => make_union_reloaded a
+notation "∪(" a ")" => has_union.union a
 
 noncomputable def union_set (a b : set) : set :=
 ∪(s{a, b})
@@ -786,9 +782,9 @@ by
   intro x; rw [element_in_one_element_set]
   intro h2; rwa [← h2] at h
 
-theorem unionset_subseteq [has_belong α] [has_union α] {a : α} {x : set} :
+theorem unionset_subseteq [has_belong α] [has_belong β] [has_union α β] {a : α} {x : set} :
   x ∈ a → x s⊆ ∪(a) := by
-  intro h y hy; unfold make_union_reloaded;
+  intro h y hy;
   rw [has_union.proof_union]; use x;
 
 axiom power_set (a : set) : set
@@ -1531,8 +1527,7 @@ by
   | inl f => exact h.1 x f;
   | inr f => exact h.2 x f;
 
-theorem relation_union_is_relation
-  {α : Type u} [has_belong α] [has_union α] (a : α) :
+theorem relation_union_is_relation [has_belong α] [has_belong β] [has_union α β] (a : α) :
 (∀ x : set, x ∈ a → Rel(x)) → Rel(∪(a)) :=
 by
   intros h x f;

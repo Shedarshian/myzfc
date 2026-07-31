@@ -476,13 +476,13 @@ by
   intros x hx y hy; simp only;
   rw [restrict_value hx, restrict_value hy]; simp only [id_value];
 
-class has_inter (α : Type u) [has_belong α] where
-(inter : α → α)
+class has_inter (α) (β : outParam (Type _)) [has_belong α] [has_belong β] where
+(inter : α → β)
 (proof_inter {a : α} : (has_belong.to_Class a = ↑s0 →
   has_belong.to_Class (inter a) = ↑s0) ∧ (
 has_belong.to_Class a ≠ ↑s0 → ∀ b : set, b ∈ inter a ↔ ∀ c : set, c ∈ a → b ∈ c))
 
-instance Class.to_has_inter : has_inter Class :=
+instance Class.to_has_inter : has_inter Class Class :=
 ⟨ fun A b => A ≠ ↑s0 ∧ ∀ c : set, c ∈ A → b ∈ c, by
   intro a; constructor <;> intro h;
   · rw [←extensionality_belong]; intro b;
@@ -512,7 +512,7 @@ theorem set_inter_is_set {s : set} : ((has_inter.inter s.to_Class).is_set) := by
   rw [s2]; simp only [ne_eq, intersection_def, and_iff_right_iff_imp];
   rw [proof_in_Class]; intro ha;
   exact ha.2 y h1;
-noncomputable instance set.to_has_inter : has_inter set :=
+noncomputable instance set.to_has_inter : has_inter set set :=
 ⟨ fun s => (has_inter.inter s.to_Class).to_set set_inter_is_set, by
   intro s; simp only [ne_eq]; constructor;
   · intro h; have h : s = s0;
@@ -541,12 +541,7 @@ theorem set_inter_def {a : set} : ∀ b : set, b ∈ has_inter.inter a ↔ a ≠
   rw [←extensionality_belong]; intro b;
   rw [set_belong_set_to_class, h1, ←set_belong_set_to_class];
 
-def make_inter_reloaded
-  {α : Type u} [has_belong α] [has_inter α] (a : α)
-  : α :=
-has_inter.inter a
-
-notation "∩(" a ")" => make_inter_reloaded a
+notation "∩(" a ")" => has_inter.inter a
 notation "{" y " | " x " s∈ " a "}" => (make_replacement a (fun x _y => _y = y))
 noncomputable def set_separation : set → (set → Prop) → set :=
   fun a (f : Class) => a ∩ f

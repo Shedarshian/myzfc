@@ -256,7 +256,7 @@ theorem ord_belonged_to [has_belong α] {A : α} {α : ordinal} : α ∈ A ↔ �
 theorem ord_element_ord (A : ordinal) (a : set) : a ∈ A → Ord(a) :=
   ord_element_ord' A.val a A.prop
 
-noncomputable instance ordinal.to_has_union : has_union ordinal :=
+noncomputable instance ordinal.to_has_union : has_union ordinal ordinal :=
 ⟨ fun a => ⟨make_union a.val, by {
   rcases a with ⟨a, pa⟩;
   constructor <;> intros x hx y hy <;>
@@ -406,7 +406,7 @@ by
   | inl g => right; rw [g];
   | inr g => left; use h;
 
-theorem ord_class_union_ordinal [has_belong α] [has_union α] (A : α)
+theorem ord_class_union_ordinal [has_belong α] [has_belong β] [has_union α β] (A : α)
 (h : A s⊆ On) : Ord(∪(A)) :=
 by
   constructor <;> intros x hx y hy;
@@ -781,8 +781,9 @@ by
   · apply Subtype.ext; rfl;
   rwa [hgg];
 
-def trans_rec_class (G : Class) : Class :=
-∪(fun f => ∃ β : ordinal, Fnc_on f β.val ∧ ∀ α < β, f[[α.val]] = (G[[f Γ α.val]]))
+def trans_rec_class_help (G : Class) : Class :=
+  fun f => ∃ β : ordinal, Fnc_on f β.val ∧ ∀ α < β, f[[α.val]] = (G[[f Γ α.val]])
+def trans_rec_class (G : Class) : Class := ∪(trans_rec_class_help G)
 
 lemma transfinite_recursion_lemma1 {f g : set} {β γ : ordinal} {G : Class} :
 Fnc_on f β.val ∧ (∀ α < β, f[[α.val]] = (G[[f Γ α.val]])) ∧
@@ -820,7 +821,7 @@ by
 
 lemma transfinite_recursion_lemma2 {G : Class}
   {α : set} (hi : ((trans_rec_class G) Γ α).is_set) (hf : Fnc(trans_rec_class G))
-  (h : α ∈ D(trans_rec_class G)):
+  (h : α ∈ D(trans_rec_class G)) :
   (trans_rec_class G)[[α]] = G[[((trans_rec_class G) Γ α).to_set hi]] := by
   rw [has_function.proof_domain] at h; rcases h with ⟨y, h⟩;
   rw [value_func _ h]; swap; · exact hf.2;
@@ -993,13 +994,13 @@ theorem transfinite_recursion2 {G : Class} {α : ordinal}
   · apply h.1;
   rw [←h.2]; exact α.prop;
 
-def sup [has_belong α] [has_intersection α Class] [has_union α] (A : α) :=
+def sup [has_belong α] [has_belong β] [has_intersection α Class] [has_union α β] (A : α) :=
   ∪(A ∩ On)
-def inf [has_belong α] [has_intersection α Class] [has_inter α] (A : α) :=
+def inf [has_belong α] [has_belong β] [has_intersection α Class] [has_inter α β] (A : α) :=
   ∩(A ∩ On)
-def sup_in [has_belong α] [has_intersection α ordinal] [has_union α] (A : α)
+def sup_in [has_belong α] [has_belong β] [has_intersection α ordinal] [has_union α β] (A : α)
   (β : ordinal) := ∪(A ∩ β)
-def inf_in [has_belong α] [has_intersection α ordinal] [has_inter α] (A : α)
+def inf_in [has_belong α] [has_belong β] [has_intersection α ordinal] [has_inter α β] (A : α)
   (β : ordinal) := ∩(A ∩ β)
 
 def trans_rec_func_h (H : Class) (a : set) : Class :=
@@ -1078,11 +1079,31 @@ instance ordset.to_has_belong : has_belong ordset :=
   fun α => True
 ⟩
 theorem belong_to_ordset {x : set} {α : ordinal} : x ∈ α.to_ordset ↔ x ∈ α := by rfl;
+theorem set_ordset_belong {x : set} {α : ordset} : x ∈ α ↔ x ∈ α.val := by rfl;
+noncomputable instance : has_union ordset ordinal := ⟨
+  fun a ↦ ⟨∪(a.val), ord_class_union_ordinal _ a.prop⟩,
+  by intro a b; rw [set_ord_belong]; exact has_union.proof_union;
+⟩
+noncomputable instance [has_belong β] [has_intersection set β] :
+  has_intersection ordset β := ⟨fun a b ↦ ⟨a.val ∩ b, by
+  intro x; simp only [intersection_def, and_imp]; intro h1 h2; exact a.prop _ h1;
+⟩, by intro a b c; rw [set_ordset_belong]; exact has_intersection.proof_intersection;
+⟩
+noncomputable instance : has_intersection set ordset := ⟨fun a b ↦ a ∩ b.val, by
+  intro a b c; rw [set_ordset_belong]; exact has_intersection.proof_intersection;
+⟩
 
 open Classical in
 noncomputable def ordinal_replacement : ordset → (ordinal → set → Prop) → set :=
   fun a f => make_replacement a.val (fun x y => ∃ h : Ord(x), f ⟨x, h⟩ y)
 notation "{" y " // " x " o∈ " a "}" => (ordinal_replacement a (fun x _y => _y = y))
+noncomputable def ordinal_replacement_ord : ordset → (ordinal → ordinal) → ordset :=
+  fun a f => ⟨make_replacement a.val (fun x y => ∃ h : Ord(x), y = (f ⟨x, h⟩).val), by
+    intro x hx; rw [axiom_of_replacement] at hx;
+    · rcases hx with ⟨_, _, _, hx⟩; subst x; exact (f _).prop;
+    aesop;
+  ⟩
+notation "{" y " o// " x " o∈ " a "}" => (ordinal_replacement_ord a (fun x => y))
 theorem mem_ordinal_replacement0 (a) (f : ordinal → set → Prop) :
   (∀ u v w, f u v ∧ f u w → v = w) →
   ∀ y : set, y ∈ ordinal_replacement a f ↔ ∃ x, x ∈ a ∧ f x y := by
@@ -2084,7 +2105,8 @@ noncomputable def ordinal_separation : ordset → (ordinal → Prop) → ordset 
   ⟩
 notation "{" α " o∈ " a " // " f "}" => (ordinal_separation a fun α ↦ f)
 notation "{" y " // " α " o∈ " a " // " f "}" => {y // α o∈ {α o∈ a // f}}
-#check fun α : ordinal ↦ {γ.val // γ o∈ α // γ < α}
+notation "{" y " o// " α " o∈ " a " // " f "}" => {y o// α o∈ {α o∈ a // f}}
+#check fun α : ordinal ↦ {γ o// γ o∈ α // γ < α}
 
 theorem mem_ordinal_separation {f : ordinal → Prop} :
   α ∈ {γ o∈ a // f γ} ↔ α ∈ a ∧ f α := by
@@ -2098,8 +2120,32 @@ theorem mem_ordinal_replacement {f : ordinal → set} :
   x ∈ {f γ // γ o∈ a} ↔ ∃ γ, x = f γ ∧ γ ∈ a := by
   rw [mem_ordinal_replacement0]; swap; · simp;
   conv => lhs; rhs; ext; rw [And.comm];
+theorem mem_ordinal_replacement_ord {f : ordinal → ordinal} :
+  x ∈ {f γ o// γ o∈ a} ↔ ∃ γ, ∃ hx : Ord(x), ⟨x, hx⟩ = f γ ∧ γ ∈ a := by
+  unfold ordinal_replacement_ord; conv => lhs; rw [set_ordset_belong]; simp only;
+  rw [axiom_of_replacement]; constructor <;> intro ⟨y, h1, h2⟩;
+  · rcases h2 with ⟨h2, h3⟩; use ⟨y, h2⟩; subst x;
+    simp only [Subtype.coe_eta, true_and, exists_prop]; use (f _).prop; use h1;
+  · use y.val; use h2.2; use y.prop; use Subtype.coe_inj.2 h2.1;
+  aesop;
 theorem mem_ordinal_repsep {f : ordinal → Prop} {g : ordinal → set} :
   x ∈ {g γ // γ o∈ a // f γ} ↔ ∃ γ, x = g γ ∧ γ ∈ a ∧ f γ := by
   simp only [mem_ordinal_replacement, mem_ordinal_separation];
+theorem mem_ordinal_repsep_ord {f : ordinal → Prop} {g : ordinal → ordinal} :
+  x ∈ {g γ o// γ o∈ a // f γ} ↔ ∃ γ, x = g γ ∧ γ ∈ a ∧ f γ := by
+  simp only [mem_ordinal_replacement_ord, mem_ordinal_separation];
+
+noncomputable def ord_set_to_func (a : ordset) : set :=
+  let h := ord_isom_we_set (E_well_order_ord_class a.prop); h.choose_spec.1.choose
+theorem ord_set_func_monotone (a : ordset) : strict_monotone (ord_set_to_func a) := by
+  let h := ord_isom_we_set (E_well_order_ord_class a.prop);
+  have h1 := h.choose_spec.1.choose_spec;
+  apply ord_isom_monotone h1; · exact h.choose.prop;
+  exact a.prop;
+theorem ord_set_func_range (a : ordset) : W(ord_set_to_func a) = a.val := by
+  let h := ord_isom_we_set (E_well_order_ord_class a.prop);
+  have h1 := h.choose_spec.1.choose_spec; exact h1.1.2;
+
+
 
 end zfset
