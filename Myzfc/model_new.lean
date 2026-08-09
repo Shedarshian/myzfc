@@ -9,92 +9,101 @@ namespace zfset
 open Lean
 
 inductive wff where
-| mem (x1 x2 : Name)
-| and (x1 x2 : wff)
-| or (x1 x2 : wff)
+| True
+| False
+| mem (x1 x2 : set)
 | imp (x1 x2 : wff)
-| iff (x1 x2 : wff)
 | neg (x1 : wff)
-| foral (x1 : Name) (x2 : wff)
-| exist (x1 : Name) (x2 : wff)
+| foral (body : set → wff)
 
-syntax "∀" "${" explicitBinders "}" ", " term : term
-syntax "${" term "}" : term
 syntax:max "wff{" term "}" : term
-macro_rules
-| `(wff{$t:term}) =>
-  match t with
-  | `($y:ident) =>
-    let s := y.getId.eraseMacroScopes.toString
-    if s.front.isLower then
-      `($(quote y.getId))
-    else
-      `($y)
-  | `($x1:term ∈ $x2:term) => `(wff.mem (wff{$x1}) (wff{$x2}))
-  | `($x1:term ∧ $x2:term) => `(wff.and (wff{$x1}) (wff{$x2}))
-  | `($x1:term ∨ $x2:term) => `(wff.or (wff{$x1}) (wff{$x2}))
-  | `($x1:term → $x2:term) => `(wff.imp (wff{$x1}) (wff{$x2}))
-  | `($x1:term ↔ $x2:term) => `(wff.iff (wff{$x1}) (wff{$x2}))
-  | `(¬ $x1:term) => `(wff.neg (wff{$x1}))
-  | `(($x1:term)) => `((wff{$x1}))
-  | `(∀ $x1:ident, $x2:term) => `(wff.foral $(quote x1.getId) (wff{$x2}))
-  | `(∀ $x1:ident*, $x2:term) => do
+macro_rules | `(wff{$t:ident}) => `($t)
+macro_rules | `(wff{$x1:term ∈ $x2:term}) => `(wff{∃ x, x = $x1 ∧ x ∈ $x2})
+macro_rules | `(wff{$x1:ident ∈ $x2:ident}) => `(wff.mem $x1 $x2)
+macro_rules | `(wff{$x1:term → $x2:term}) => `(wff.imp (wff{$x1}) (wff{$x2}))
+macro_rules | `(wff{¬$x1:term}) => `(wff.neg (wff{$x1}))
+macro_rules | `(wff{$x1:term ∧ $x2:term}) => `(wff{¬($x1 → ¬$x2)})
+macro_rules | `(wff{$x1:term ∨ $x2:term}) => `(wff{¬$x1 → $x2})
+macro_rules | `(wff{$x1:term ↔ $x2:term}) => `(wff{($x1 → $x2) ∧ ($x2 → $x1)})
+macro_rules | `(wff{($x1:term)}) => `((wff{$x1}))
+macro_rules | `(wff{∀ $x1:ident, $x2:term}) => `(wff.foral (fun $x1 ↦ wff{$x2}))
+macro_rules | `(wff{∀ $x1:ident*, $x2:term}) => do
       let init ← `(wff{$x2})
-      x1.foldlM (fun x acc ↦ `(wff.foral $(quote x.getId) ($acc))) init
-  | `(∃ $x1:ident, $x2:term) => `(wff.exist $(quote x1.getId) (wff{$x2}))
-  | `(${$y:ident}) => `($y)
-  | `(∀ ${$x1:ident}, $x2:term) => `(wff.foral $x1 (wff{$x2}))
-  | t => Lean.Macro.throwError s!"syntax '{t}' is not defined"
-
-def change_name (φ : wff) (x a : Name) :=
-match φ with
-| wff.mem y z => wff.mem (if y = x then a else y) (if z = x then a else z)
-| wff.foral y ψ => if y = x then (wff.foral y ψ) else (wff.foral y (change_name ψ x a))
-| wff.exist y ψ => if y = x then (wff.exist y ψ) else (wff.exist y (change_name ψ x a))
-| wff.and φ1 φ2 => wff.and (change_name φ1 x a) (change_name φ2 x a)
-| wff.or φ1 φ2 => wff.or (change_name φ1 x a) (change_name φ2 x a)
-| wff.imp φ1 φ2 => wff.imp (change_name φ1 x a) (change_name φ2 x a)
-| wff.iff φ1 φ2 => wff.iff (change_name φ1 x a) (change_name φ2 x a)
-| wff.neg φ => wff.neg (change_name φ x a)
-syntax:max term "[" term " ↦ " term "]" : term
-macro_rules
-| `($φ[$x ↦ $a]) => `(change_name $φ $x $a)
-def nf (φ : wff) (x : Name) : Except Nat wff :=
-match φ with
-| wff.mem y z => if y = x ∨ z = x then throw 1 else return wff.mem y z
-| wff.foral y ψ =>
-  do if y = x then return wff.foral y ψ else let px ← (nf ψ x); return wff.foral y px
-| wff.exist y ψ =>
-  do if y = x then return wff.exist y ψ else let px ← (nf ψ x); return wff.exist y px
-| wff.and φ1 φ2 => do let px ← (nf φ1 x); let py ← (nf φ2 x); return wff.and px py
-| wff.or φ1 φ2 => do let px ← (nf φ1 x); let py ← (nf φ2 x); return wff.or px py
-| wff.imp φ1 φ2 => do let px ← (nf φ1 x); let py ← (nf φ2 x); return wff.imp px py
-| wff.iff φ1 φ2 => do let px ← (nf φ1 x); let py ← (nf φ2 x); return wff.iff px py
-| wff.neg φ => do let px ← (nf φ x); return wff.neg px
-syntax "#nf{" term "," ident "}" : term
-macro_rules
-| `(#nf{$φ, $x}) => `(nf $φ $x)
+      let r ← x1.foldrM (fun x (acc : TSyntax `term) ↦ `(wff.foral (fun $x ↦ ($acc)))) init
+      return r.raw
+macro_rules | `(wff{∃ $x1:ident, $x2:term}) => `(wff{¬∀ $x1, ¬$x2})
+macro_rules | `(wff{|$x|}) => `($x)
+macro_rules | `(wff{true}) => `(wff.True)
+macro_rules | `(wff{false}) => `(wff.False)
 
 axiom is_true : wff → Prop
 syntax "⊢{" term "}" : term
-macro_rules
-| `(⊢{$t:term}) => `(is_true wff{$t})
+macro_rules | `(⊢{$t:term}) => `(is_true wff{$t})
 
-@[simp] axiom wff_and {φ ψ : wff} : ⊢{φ ∧ ψ} ↔ ⊢{φ} ∧ ⊢{ψ}
-@[simp] axiom wff_or {φ ψ : wff} : ⊢{φ ∨ ψ} ↔ ⊢{φ} ∨ ⊢{ψ}
+@[simp] axiom wff_mem {x y : set} : ⊢{x ∈ y} ↔ x ∈ y
 @[simp] axiom wff_imp {φ ψ : wff} : ⊢{φ → ψ} ↔ ⊢{φ} → ⊢{ψ}
-@[simp] axiom wff_iff {φ ψ : wff} : ⊢{φ ↔ ψ} ↔ (⊢{φ} ↔ ⊢{ψ})
 @[simp] axiom wff_neg {φ : wff} : ⊢{¬φ} ↔ ¬⊢{φ}
-axiom wff_a4 {x a : Name} {φ : wff} : ⊢{∀ ${x}, φ} → is_true φ[x ↦ a]
-axiom wff_a5 {x : Name} {φ ψ : wff} : ⊢{∀ ${x}, (φ → ψ)} → ⊢{(∀ ${x}, φ) → (∀ ${x}, ψ)}
-axiom wff_a6 {x : Name} {φ : wff} : ⊢{φ} → ⊢{∀ ${x}, φ}
+@[simp] axiom wff_foral {φ : set → wff} : ⊢{∀ x, |φ x|} ↔ ∀ x : set, ⊢{|φ x|}
+@[simp↓ 110] theorem wff_and {φ ψ : wff} : ⊢{φ ∧ ψ} ↔ ⊢{φ} ∧ ⊢{ψ} := by simp;
+@[simp↓ 110] theorem wff_or {φ ψ : wff} : ⊢{φ ∨ ψ} ↔ ⊢{φ} ∨ ⊢{ψ} :=
+  by simp only [wff_imp, wff_neg]; exact Iff.symm or_iff_not_imp_left;
+@[simp↓ 120] theorem wff_iff {φ ψ : wff} : ⊢{φ ↔ ψ} ↔ (⊢{φ} ↔ ⊢{ψ}) :=
+  by simp only [wff_and, wff_imp]; exact Iff.symm iff_def;
+@[simp↓ 110] theorem wff_exist {φ : set → wff} : ⊢{∃ x, |φ x|} ↔ ∃ x : set, ⊢{|φ x|} :=
+  by simp only [wff_neg]; rw [@wff_foral fun x ↦ wff.neg (φ x)]; simp;
 
 lemma hilbert1 {φ ψ : wff} : ⊢{φ → ψ → φ} := by
   simp only [wff_imp]; exact fun a b ↦ a;
-lemma test {φ : wff} : ⊢{φ} → ⊢{∀ t, φ} := wff_a6
-lemma test2 : ⊢{∀ x, x ∈ a ∧ c ∈ x} → ⊢{b ∈ a ∧ c ∈ b} := wff_a4
-lemma test3 : ⊢{∀ x, x ∈ ${a} ∧ c ∈ x} → ⊢{b ∈ ${a} ∧ c ∈ b} := wff_a4
-lemma test4 : ⊢{∀ ${x}, ${x} ∈ ${x}} → ⊢{a ∈ a} := @wff_a4 x _ (wff.mem x x)
-lemma nf1 : is_true #nf{wff{x ∈ y}, z}
+lemma test : ⊢{∀ x, x ∈ a} ↔ ∀ y, ⊢{y ∈ a} := @wff_foral (fun t ↦ wff{t ∈ a})
+
+macro_rules | `(wff{$x1:term = $x2:term}) => `(wff{∀ x, x ∈ $x1 ↔ x ∈ $x2})
+@[simp↓ 130] theorem wff_eq {x y : set} : ⊢{x = y} ↔ x = y := by
+  simp only [wff_foral, ↓wff_iff, wff_mem]; exact extensionality_iff;
+macro_rules | `(wff{$a:ident ∈ {$x:ident // $y:term}}) => `((fun $x ↦ wff{$y}) $a)
+macro_rules | `(wff{$x:ident ∈ s{$a:term, $b:term}}) => `(wff{$x ∈ $a ∨ $x ∈ $b})
+macro_rules | `(wff{$x:ident ∈ ∪($a:term)}) => `(wff{∃ x, x ∈ $a ∧ $x ∈ x})
+macro_rules | `(wff{$x s⊆ $y}) => `(wff{∀ x, x ∈ $x → x ∈ $y})
+macro_rules | `(wff{$x ≠ $y}) => `(wff{¬$x = $y})
+macro_rules | `(wff{$_:ident ∈ s0}) => `(wff.False)
+macro_rules | `(wff{$x:ident ∈ $a ∩ $b}) => `(wff{$x ∈ $a ∧ $x ∈ $b})
+
+def satisfy (A : Class) (φ : wff) : Prop :=
+  match φ with
+  | wff{x ∈ y} => x ∈ A ∧ y ∈ A ∧ x ∈ y
+  | wff{¬φ} => ¬(satisfy A φ)
+  | wff{φ → ψ} => (satisfy A φ) → (satisfy A ψ)
+  | wff.foral f => ∀ x s∈ A, (satisfy A (f x))
+  | wff{true} => true
+  | wff{false} => false
+syntax term "⊨{" term "}" : term
+macro_rules | `($A:term ⊨{$t:term}) => `(satisfy $A wff{$t})
+
+private def mkAllMem (A : TSyntax `ident) (xs : Array (TSyntax `ident)) :
+    MacroM (TSyntax `term) := do
+  match xs.back? with
+  | none =>
+      `(True)
+  | some last =>
+      xs.pop.foldrM
+        (init := ← `($last ∈ $A))
+        fun x rest =>
+          `($x ∈ $A ∧ $rest)
+
+def freevar (φ : wff) : List set := sorry
+def absolute (A : Class) (φ : wff) := A⊨{φ} ↔ ⊢{φ}
+syntax:max "|" ident "(" ident,* ")abs{" term "}" : term
+macro_rules
+| `(|$A:ident($xs:ident,*)abs{$t:term}) => do
+  let h ← mkAllMem A xs.getElems; `($h → (absolute $A wff{$t}))
+
+def Ax1 := wff{∀ a x y, x = y → x ∈ a → y ∈ a}
+noncomputable def Ax2 := wff{∀ a b, ∃ x, x = s{a, b}}
+noncomputable def Ax3 := wff{∀ a, ∃ x, x = ∪(a)}
+def Ax4 := wff{∀ a, ∃ x, ∀ y, (y ∈ x ↔ y s⊆ a)}
+def Ax6 := wff{∀ a, a ≠ s0 → ∃ x, x ∈ a ∧ x ∩ a = s0}
+
+theorem abs_in {A : Class} : Tr(A) → |A(x,y)abs{x ∈ y} := by
+  intro h1 ⟨h2, h3⟩; simp only [absolute, satisfy, h2, h3, true_and, wff_mem];
+
 
 end zfset

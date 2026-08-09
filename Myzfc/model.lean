@@ -175,7 +175,7 @@ theorem abs_pair {A : Class} {x y : set} : Tr(A) → x ∈ A → y ∈ A → |A(
 theorem abs_union2 {A : Class} {x : set} : Tr(A) → x ∈ A → ∪(x) ∩ A = ∪(x) := by
   intro h1 h2; rw [←extensionality_belong]; intro a; simp only [intersection_def,
     and_iff_left_iff_imp]; intro h3;
-  rw [make_union_reloaded, has_union.proof_union] at h3; rcases h3 with ⟨c, h3, h4⟩;
+  rw [has_union.proof_union] at h3; rcases h3 with ⟨c, h3, h4⟩;
   exact h1 _ (h1 _ h2 _ h4) _ h3;
 theorem abs_union {A : Class} {x : set} : Tr(A) → x ∈ A → |A(x)m{∪(x)} = ∪(x) := by
   intro h1 h2; rw [←abs_union2 h1 h2, abs_ident h1 h2];
@@ -211,7 +211,7 @@ theorem abs_axiom3 {A : Class} : Tr(A) → (|A()ax{Ax3} ↔ ∀ a s∈ A, ∪(a)
     rw [←extensionality_belong]; intro z; constructor <;> intro b1;
     all_goals
       first | have x3 := h2 _ x1 _ b1;
-            | have b1' := b1; rw [make_union_reloaded, has_union.proof_union] at b1;
+            | have b1' := b1; rw [has_union.proof_union] at b1;
               rcases b1 with ⟨c, b1, b2⟩; have x3 := h2 _ (h2 _ a1 _ b2) _ b1;
       have x2 := x2 _ x3; rw [abs_ident h2 x3] at x2;
       first | rwa [←x2]; | rwa [x2];
