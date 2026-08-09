@@ -1377,9 +1377,9 @@ theorem inf_card_is_lim_ord {α : inf_card} : α.val ∈ K2 := by
 @[reducible] instance inf_card.coe_lim_ord : Coe inf_card lim_ord :=
   ⟨fun α ↦ ⟨α.val, inf_card_is_lim_ord⟩⟩
 
-def regular (α : ordinal) := cf(ℵ_(α)) = ℵ_(α)
-def singular (α : ordinal) := cf(ℵ_(α)) < ℵ_(α)
-def weakly_inaccessible (α : ordinal) := α ∈ K2 ∧ regular α
+def regular (κ : inf_card) := cf(κ) = κ
+def singular (κ : inf_card) := cf(κ) < κ
+def weakly_inaccessible (α : ordinal) := α ∈ K2 ∧ regular ℵ_(α)
 def inaccessible (α : ordinal) := weakly_inaccessible α ∧
   ∀ x, |x| < ℵ_(α).val → |P(x)| < ℵ_(α).val
 

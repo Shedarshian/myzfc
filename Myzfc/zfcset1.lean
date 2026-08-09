@@ -327,6 +327,10 @@ instance Class.to_make_union : has_union Class Class :=
 
 notation "∪(" a ")" => has_union.union a
 
+theorem union_one_element_set : ∪(s{a}) = a := by
+  rw [←extensionality_belong]; simp only [has_union.proof_union, element_in_one_element_set,
+    exists_eq_right, implies_true];
+
 noncomputable def union_set (a b : set) : set :=
 ∪(s{a, b})
 def union_class (A B : Class) : Class :=

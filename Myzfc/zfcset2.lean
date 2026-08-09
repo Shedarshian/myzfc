@@ -542,14 +542,14 @@ theorem set_inter_def {a : set} : ∀ b : set, b ∈ has_inter.inter a ↔ a ≠
   rw [set_belong_set_to_class, h1, ←set_belong_set_to_class];
 
 notation "∩(" a ")" => has_inter.inter a
-notation "{" y " | " x " s∈ " a "}" => (make_replacement a (fun x _y => _y = y))
+notation "{" y " // " x " s∈ " a "}" => (make_replacement a (fun x _y => _y = y))
 noncomputable def set_separation : set → (set → Prop) → set :=
   fun a (f : Class) => a ∩ f
-notation "{" x " s∈ " a " | " f "}" => (set_separation a (fun x => f))
-notation "{" y " | " x " s∈ " a " | " f "}" => {y | x s∈ {x s∈ a | f}}
+notation "{" x " s∈ " a " // " f "}" => (set_separation a (fun x => f))
+notation "{" y " // " x " s∈ " a " // " f "}" => {y // x s∈ {x s∈ a // f}}
 
 theorem replacement_notation_def {a y : set} {f : set → set} :
-  y ∈ {f x | x s∈ a} ↔ ∃ x s∈ a, y = f x := by
+  y ∈ {f x // x s∈ a} ↔ ∃ x s∈ a, y = f x := by
   rw [axiom_of_replacement]; simp;
 
 theorem restrict_intersection [has_belong α] [has_intersection α Class]
@@ -801,6 +801,29 @@ theorem inv_one_one_onto [has_belong α] [has_intersection α Class] [has_functi
   has_belong.to_Class A := by
   rw [←extensionality_belong]; intro a; simp;
 
-
+def Pr1 : Class := fun p ↦ ∃ x y, p = s⟨s⟨x, y⟩, x⟩
+def Pr2 : Class := fun p ↦ ∃ x y, p = s⟨s⟨x, y⟩, y⟩
+theorem Pr1_Fnc : Fnc(Pr1) := by
+  constructor;
+  · intro x; unfold Pr1; conv => lhs; simp [proof_in_Class];
+    intro ⟨_, _, _⟩; subst x; simp;
+  intro u v w ⟨hv, hw⟩; unfold Pr1 at *; simp [proof_in_Class] at hv hw; aesop;
+theorem Pr2_Fnc : Fnc(Pr2) := by
+  constructor;
+  · intro x; unfold Pr2; conv => lhs; simp [proof_in_Class];
+    intro ⟨_, _, _⟩; subst x; simp;
+  intro u v w ⟨hv, hw⟩; unfold Pr2 at *; simp [proof_in_Class] at hv hw; aesop;
+@[simp] theorem Pr1_value : Pr1[[s⟨x, y⟩]] = x := by
+  apply value_func Pr1_Fnc.2; unfold Pr1; simp [proof_in_Class];
+@[simp] theorem Pr2_value : Pr2[[s⟨x, y⟩]] = y := by
+  apply value_func Pr2_Fnc.2; unfold Pr2; simp [proof_in_Class];
+theorem Pr1_sset {bc l r : set} : bc s⊆ l × r → {Pr1[[x]] // x s∈ bc} s⊆ l := by
+  intro h x; rw [replacement_notation_def]; simp only [forall_exists_index, and_imp];
+  intro y h1 h2; subst x; have h2 := h _ h1; rw [has_product.proof_product] at h2;
+  rcases h2 with ⟨a, b, c, d, e⟩; subst y; simp only [Pr1_value]; use b;
+theorem Pr2_sset {bc l r : set} : bc s⊆ l × r → {Pr2[[x]] // x s∈ bc} s⊆ r := by
+  intro h x; rw [replacement_notation_def]; simp only [forall_exists_index, and_imp];
+  intro y h1 h2; subst x; have h2 := h _ h1; rw [has_product.proof_product] at h2;
+  rcases h2 with ⟨a, b, c, d, e⟩; subst y; simp only [Pr2_value]; use d;
 
 end zfset

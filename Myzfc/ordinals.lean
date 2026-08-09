@@ -485,6 +485,8 @@ theorem ord_nle {α β : ordinal} : ¬α ≤ β ↔ β < α := by
   intro h g; cases g with
   | inl g => exact belong_to_2 h g;
   | inr g => rw [g] at h; exact belong_to_self h;
+theorem ord_nlt {α β : ordinal} : ¬α < β ↔ β ≤ α := by
+  rw [←ord_nle]; simp only [not_not];
 
 theorem ord_succ_belong_le {α β : ordinal} : α < β → succ α ≤ β :=
   fun h => ord_le.2 (Or.symm (ord_succ_belong h))
@@ -523,11 +525,18 @@ theorem ord_succ_le_succ_iff {α β : ordinal} : α ≤ β ↔ succ α ≤ succ 
 theorem ord_succ_lt_succ_iff {α β : ordinal} : α < β ↔ succ α < succ β :=
   Iff.intro ord_succ_lt_succ (fun h ↦ ord_succ_belong_le_iff.2 (ord_lt_succ_iff.1 h))
 
+theorem ord_le_all_lt {α β : ordinal} : α ≤ β ↔ ∀ γ < α, γ < β := by
+  constructor <;> intro h;
+  · intro γ h1; exact h γ.val h1;
+  intro γ h1; exact h ⟨γ, ord_element_ord _ _ h1⟩ h1;
+
 noncomputable def o0 : ordinal := ⟨s0, by {
   constructor <;> intros x hx y hy <;>
   exfalso <;> apply axiom_of_empty hx;
 }⟩
 theorem o0_eq_s0 : o0.val = s0 := rfl
+noncomputable def o1 : ordinal := succ o0
+theorem o1_eq_s1 : o1.val = succ_set s0 := rfl
 
 def K1 : Class := fun a => ∃ h : Ord(a), (a = s0 ∨ ∃ β : ordinal, ⟨a, h⟩ = (succ β))
 def K2 : Class := On - K1
@@ -1092,6 +1101,8 @@ noncomputable instance [has_belong β] [has_intersection set β] :
 noncomputable instance : has_intersection set ordset := ⟨fun a b ↦ a ∩ b.val, by
   intro a b c; rw [set_ordset_belong]; exact has_intersection.proof_intersection;
 ⟩
+theorem union_to_ordset {α : ordinal} : ∪(α.to_ordset) = ∪(α) := by
+  rw [←extensionality_belong]; simp only [has_union.proof_union, belong_to_ordset, implies_true]
 
 open Classical in
 noncomputable def ordinal_replacement : ordset → (ordinal → set → Prop) → set :=
@@ -1259,6 +1270,16 @@ theorem ordinal_union_set {α : set} {β : ordinal} {f : ordinal → ordinal} :
     rw [mem_ordinal_replacement2 _ _ h]; simp only [↓existsAndEq, true_and];
   simp only [↓existsAndEq, and_true]; rfl;
 
+theorem ord_ge_0 {α : ordinal} : o0 ≤ α := by
+  intro x; erw [empty_false]; simp only [IsEmpty.forall_iff];
+theorem ord_ne_0_gt {α : ordinal} : ¬α = o0 → o0 < α := by
+  intro h;
+  cases ord_le.1 (@ord_ge_0 α) with
+  | inl => assumption;
+  | inr => subst α; contradiction;
+theorem ord_ne_0_gt_iff {α : ordinal} : ¬α = o0 ↔ o0 < α := by
+  use ord_ne_0_gt; intro h1 h2; subst α; exact belong_to_self h1;
+
 theorem ordinal_set_replace {β : ordinal} {f g : ordinal → ordinal} :
   (∀ γ o∈ β, f γ = g γ) → {(f γ).val // γ o∈ β} = {(g γ).val // γ o∈ β} := by
   intro h; rw [←extensionality_belong]; intro a;
@@ -1276,6 +1297,11 @@ theorem ordinal_replacement_id {β} : {γ.val // γ o∈ β} = β.val := by
   · rcases hx with ⟨x, h1, h2⟩; rw [h2]; exact h1;
   · use ⟨a, β.prop a hx⟩; use hx;
   intros; aesop;
+theorem ordinal_replacement_const {β : ordinal} : β ≠ o0 → {a // _ o∈ β} = s{a} := by
+  rw [←extensionality_belong]; intro h x; rw [mem_ordinal_replacement0];
+  swap; · simp only [and_imp, forall_eq_apply_imp_iff, imp_self, implies_true];
+  simp only [exists_and_right, element_in_one_element_set, and_iff_right_iff_imp];
+  intro; use o0; rw [ord_belonged_to, belong_to_ordset]; exact ord_ne_0_gt_iff.1 h;
 
 theorem ord_k2_succ_in {α β : ordinal} (h : α ∈ K2) :
   β ∈ α → succ β ∈ α := by
@@ -1298,7 +1324,6 @@ theorem ord_union_le_sup {β : ordinal} {f : ordinal → ordinal} :
   erw [←ordinal_union_axiom, has_union.proof_union];
   use (f α).val; use hx; rw [mem_ordinal_replacement0]; · use α; use ha;
   simp only [and_imp, forall_eq_apply_imp_iff, imp_self, implies_true];
-
 theorem ord_union_sup_le {β M : ordinal} {f : ordinal → ordinal} :
   (∀ α o∈ β, f α ≤ M) → ⋃(γ oo∈ β, f γ) ≤ M := by
   intro h x hx;
@@ -1308,16 +1333,20 @@ theorem ord_union_sup_le {β M : ordinal} {f : ordinal → ordinal} :
   · rcases hx with ⟨y, h4, hx⟩; subst c;
     exact h y h4 x h3;
   simp only [and_imp, forall_eq_apply_imp_iff, imp_self, implies_true];
-
-theorem ord_ge_0 {α : ordinal} : o0 ≤ α := by
-  intro x; erw [empty_false]; simp only [IsEmpty.forall_iff];
-theorem ord_ne_0_gt {α : ordinal} : ¬α = o0 → o0 < α := by
-  intro h;
-  cases ord_le.1 (@ord_ge_0 α) with
-  | inl => assumption;
-  | inr => subst α; contradiction;
-theorem ord_ne_0_gt_iff {α : ordinal} : ¬α = o0 ↔ o0 < α := by
-  use ord_ne_0_gt; intro h1 h2; subst α; exact belong_to_self h1;
+theorem ordset_union_le_sup {c : ordset} : ∀ β o∈ c, β ≤ ∪(c) := by
+  intro β h x h1; rw [has_union.proof_union]; use β.val; use h1; use h;
+theorem ordset_union_sup_le {M : ordinal} {c : ordset} : (∀ α o∈ c, α ≤ M) → ∪(c) ≤ M := by
+  intro h x h1; rw [has_union.proof_union] at h1; rcases h1 with ⟨β, h1, h2⟩;
+  exact h ⟨β, c.prop _ h2⟩ h2 _ h1;
+theorem ordset_inter_union_le_sup {c : ordset} {α : ordinal} : ∪(c ∩ α) ≤ α := by
+  intro x; rw [has_union.proof_union]; intro ⟨b, h1, h2⟩;
+  rw [intersection_def] at h2; exact α.prop.1 _ h2.2 _ h1;
+theorem ord_lt_union {α β : ordinal} {f : ordinal → ordinal} :
+  α < ⋃(γ oo∈ β, f γ) → ∃ δ, δ < β ∧ α < f δ := by
+  intro h; have h : α.val ∈ ⋃(γ oo∈ β, f γ).val := h;
+  rw [←ordinal_union_axiom, has_union.proof_union] at h;
+  rcases h with ⟨c, h1, h2⟩; rw [mem_ordinal_replacement0] at h2; swap; · simp;
+  rcases h2 with ⟨w, h2, h3⟩; subst c; use w; use h2; exact h1;
 
 theorem minimal_ordinal {f : ordinal → Prop} :
   (∃ α, f α) → ∃ β, f β ∧ ∀ γ, f γ → β ≤ γ := by
@@ -2146,6 +2175,13 @@ theorem ord_set_func_range (a : ordset) : W(ord_set_to_func a) = a.val := by
   let h := ord_isom_we_set (E_well_order_ord_class a.prop);
   have h1 := h.choose_spec.1.choose_spec; exact h1.1.2;
 
-
+noncomputable def count (f : ordinal → Prop) (α : ordinal) : ordinal :=
+  let s : ordset := {γ o∈ α // f γ};
+  let h := ord_isom_we_set (E_well_order_ord_class s.prop);
+  h.choose
+theorem count_is_count (f : ordinal → Prop) (α : ordinal) :
+  ∃ g : set, Isom g E E (count f α).val {γ o∈ α // f γ}.val := by
+  let s : ordset := {γ o∈ α // f γ};
+  let h := ord_isom_we_set (E_well_order_ord_class s.prop); exact h.choose_spec.1
 
 end zfset

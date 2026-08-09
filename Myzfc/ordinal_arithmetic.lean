@@ -34,7 +34,7 @@ theorem ord_add_is_ord (α β : ordinal) : Ord((ord_add α.val)[[β.val]]) := by
   | inr h =>
     rw [ord_add_set3]; swap; · assumption;
     apply ord_class_union_ordinal;
-    intro x hx; rw [ordinal_replacement_axiom] at hx;
+    intro x hx; rw [mem_ordinal_replacement0] at hx;
     · rcases hx with ⟨y, h1, h2⟩; rw [h2];
       have hy := ord_element_ord' β.val y.val β.prop h1;
       have hc : y < β; · exact h1;
@@ -114,7 +114,7 @@ theorem ordinal_union_le_union {α β : ordinal} {f g : ordinal → ordinal} :
   have h0 : ∀ (f : ordinal → ordinal) (u : ordinal) (v w : set),
     v = (f u).val ∧ w = (f u).val → v = w;
   · simp;
-  rcases h with ⟨c, h1, h2⟩; rw [ordinal_replacement_axiom _ _ (h0 f)] at h2;
+  rcases h with ⟨c, h1, h2⟩; rw [mem_ordinal_replacement0 _ _ (h0 f)] at h2;
   rcases h2 with ⟨d, h2, h3⟩; rcases hz d h2 with ⟨e, h4, h5⟩;
   subst c; have h5 := h5 _ h1;
   have o := ord_element_ord' (f d) x (f d).prop h1;
@@ -168,7 +168,7 @@ theorem ord_sub {α β : ordinal} : α ≤ β → ∃!γ : ordinal, α + γ = β
     have h : ∀ (f : ordinal → ordinal), ∀ (u v w : ordinal),
       v = f u ∧ w = f u → v = w;
     · simp only [and_imp, forall_eq_apply_imp_iff, imp_self, implies_true];
-    conv at hx => rhs; ext; rhs; erw [ordinal_replacement_axiom2 _ _ (h _)];
+    conv at hx => rhs; ext; rhs; erw [mem_ordinal_replacement2 _ _ (h _)];
     simp only [↓existsAndEq, and_self, and_true] at hx;
     have h3 := fun γ_1 => mt (h3 γ_1);
     conv at h3 => rhs; rw [ord_nle, ord_nle];
@@ -207,7 +207,7 @@ theorem ord_add_assoc {α β γ : ordinal} : (α + β) + γ = α + (β + γ) := 
     cases @ord_total δ β with
     | inl h4 =>
       use o0; constructor;
-      · rw [ord_in_k2] at h; have h5 := @ord_ge_0 γ;
+      · rw [←ord_belonged_to, ord_in_k2] at h; have h5 := @ord_ge_0 γ;
         rw [ord_le] at h5; cases h5 with
         | inl => assumption;
         | inr h5 => symm at h5; exfalso; exact h.1 h5;
@@ -257,7 +257,7 @@ theorem ord_mul_is_ord (α β : ordinal) : Ord((ord_mul α)[[β.val]]) := by
   | inr h =>
     rw [ord_mul_set3]; swap; · assumption;
     apply ord_class_union_ordinal;
-    intro x hx; rw [ordinal_replacement_axiom] at hx;
+    intro x hx; rw [mem_ordinal_replacement0] at hx;
     · rcases hx with ⟨y, h1, h2⟩; rw [h2];
       have hy := ord_element_ord' β.val y.val β.prop h1;
       have hc : y < β; · exact h1;
@@ -293,21 +293,21 @@ theorem ord_mul3 {α β : ordinal} : β ∈ K2 → α * β = ⋃(γ oo∈ β, α
     rw [←extensionality_belong]; intro a; erw [empty_false]; simp only [iff_false];
     intro h2; rw [ordinal_union_set] at h2; rcases h2 with ⟨_, _, h2⟩
     exact empty_false.1 h2;
-@[simp] theorem ord_one_mul {α : ordinal} : (succ o0) * α = α := by
+@[simp] theorem ord_one_mul {α : ordinal} : o1 * α = α := by
   apply ordinal.induction α; intro α h;
   cases k12 α with
   | inl h1 => cases h1 with
     | inl => subst α; simp;
     | inr h1 =>
       rcases h1 with ⟨β, h1⟩; subst α; have h1 := h _ ord_lt_succ;
-      rw [ord_mul2, h1]; simp;
+      rw [ord_mul2, h1]; unfold o1; simp;
   | inr h1 =>
     rw [ord_mul3 h1, ordinal_union_replace h];
     rw [←extensionality_belong]; intro a;
     have : ⋃(γ oo∈ α, γ) = α;
     · apply Subtype.ext; rw [←ordinal_union_axiom];
       erw [ordinal_replacement_id];
-      rw [ord_k2_union_eq_self h1];
+      have h0 : α.to_ordset.val = α.val := rfl; rw [h0, ord_k2_union_eq_self h1];
     rw [this]
 
 theorem ord_lt_left_mul {α β γ : ordinal} : o0 < γ ∧ α < β ↔ γ * α < γ * β := by
@@ -331,9 +331,9 @@ theorem ord_lt_left_mul {α β γ : ordinal} : o0 < γ ∧ α < β ↔ γ * α <
       rw [ord_mul3 h4]; apply @ord_lt_trans _ (γ * (succ α));
       · simp only [ord_mul2]; have h4 := @ord_lt_left_add _ _ (γ * α) h0;
         simp only [ord_add1] at h4; exact h4;
-      rw [ordinal_union_lt]; use succ α + succ o0; constructor;
+      rw [ordinal_union_lt]; use succ α + o1; constructor;
       · apply ord_lt_left_add; exact ord_k2_succ_in h1 (ord_k2_gt_0 h1);
-      simp only [ord_mul2, ord_add2, ord_add1];
+      unfold o1; simp only [ord_mul2, ord_add2, ord_add1];
       have h5 := @ord_lt_left_add _ _ (γ * α + γ) h0;
       simp only [ord_add1] at h5; exact h5;
   use ht; intro h0; have h1 := @ord_ge_0 γ; rw [ord_le] at h1; cases h1 with
@@ -398,7 +398,7 @@ theorem ord_mul_k2_in_k2 {α β : ordinal} : α ≠ o0 → β ∈ K2 → α * β
   rw [ordinal_union_lt] at h1; rcases h1 with ⟨δ, h2, h3⟩;
   have h4 := calc
     succ γ  < succ (α * δ)      := by exact ord_succ_lt_succ h3;
-         _  = α * δ + succ o0   := by simp;
+         _  = α * δ + o1        := by unfold o1; simp;
          _  ≤ α * δ + α         := by
                                     apply ord_le_left_add;
                                     apply ord_succ_belong_le;
@@ -408,6 +408,9 @@ theorem ord_mul_k2_in_k2 {α β : ordinal} : α ≠ o0 → β ∈ K2 → α * β
   have h6 := @ord_union_le_sup _ (fun n ↦ α * n) _ h5;
   rw [hn] at h6; have h7 := ord_lt_le_trans h4 h6;
   exact belong_to_self h7;
+
+theorem ord_div {α β : ordinal} : β ∈ K2 → γ < α * β → ∃ δ < β, γ < α * δ := by
+  intro h h1; rw [ord_mul3 h] at h1; exact ord_lt_union h1;
 
 theorem ord_mul_add {α β γ : ordinal} : α * (β + γ) = α * β + α * γ := by
   apply ordinal.induction γ; intro γ h;
@@ -471,6 +474,7 @@ theorem ord_mul_assoc {α β γ : ordinal} : α * (β * γ) = (α * β) * γ := 
       rw [←h _ h5]; apply ord_union_le_sup;
       exact ord_lt_left_mul.1 ⟨h3.2, h5⟩;
 
+
 def ord_pow_h (α : ordinal) : Class := fun c =>
   ∃ x : ordinal, c = s⟨x.val, (x * α).val⟩
 theorem ord_pow_h_value (α x : ordinal) : (ord_pow_h α)[[x.val]] = (x * α).val := by
@@ -485,10 +489,317 @@ theorem ord_pow_h_value (α x : ordinal) : (ord_pow_h α)[[x.val]] = (x * α).va
     subst right left_1 right_1;
     have h := Subtype.ext left; aesop;
   unfold ord_pow_h; rw [proof_in_Class]; simp only [ordered_pair_eq_iff]; use x;
-open Classical in
-def ord_pow (α : ordinal) : Class :=
-  fun b => if α = o0 then b = s⟨s0, succ_set s0⟩ ∨ ∃ x, b = s⟨x, s0⟩ else
+open Classical in def ord_pow (α : ordinal) : Class :=
+  fun b => if α = o0 then b = s⟨s0, succ_set s0⟩ ∨ ∃ x, x ≠ s0 ∧ b = s⟨x, s0⟩ else
   trans_rec_func (ord_pow_h α) (succ_set s0) b
 
+theorem ord_pow0_func : Fnc_on (ord_pow o0) V := by
+  unfold ord_pow; simp only [↓reduceIte, ne_eq]; constructor; constructor;
+  · intro x h; simp only [proof_in_Class] at h; cases h with
+    | inl => subst x; simp;
+    | inr h => rcases h with ⟨h1, h2, h3⟩; subst x; simp;
+  · intro u v w ⟨hv, hw⟩; simp only [proof_in_Class, ordered_pair_eq_iff] at hv hw;
+    cases hv with
+    | inl hv => rw [hv.1] at hw; simp at hw; aesop;
+    | inr hv => rcases hv with ⟨h1, h2, h3⟩; aesop;
+  rw [←extensionality_belong]; intro x; simp only [proof_in_Class, set_in_allset_prop,
+    has_function.proof_domain, ordered_pair_eq_iff, ↓existsAndEq, true_and, true_iff];
+  by_cases x = s0; · subst x; simp only [true_and, not_true_eq_false, false_and, or_false,
+    exists_eq];
+  · use s0; simp only [and_true]; right; assumption;
+theorem ord_pow_set00 : (ord_pow o0)[[s0]] = succ_set s0 := by
+  have h0 : s⟨s0, succ_set s0⟩ ∈ ord_pow o0; · unfold ord_pow; simp only [↓reduceIte,
+    proof_in_Class, ordered_pair_eq_iff, ↓existsAndEq, true_and, true_or];
+  exact value_func ord_pow0_func.1.2 h0;
+theorem ord_pow_set01 : a ≠ s0 → (ord_pow o0)[[a]] = s0 := by
+  intro h;
+  have h0 : s⟨a, s0⟩ ∈ ord_pow o0;
+  · unfold ord_pow; simp only [↓reduceIte, ne_eq, proof_in_Class, ordered_pair_eq_iff,
+    and_true, exists_eq_right']; right; assumption;
+  exact value_func ord_pow0_func.1.2 h0;
+theorem ord_pow_setn0 {α} (h : α ≠ o0) : ord_pow α = trans_rec_func (ord_pow_h α) (succ_set s0)
+  := by
+  rw [←extensionality_belong]; intro x; unfold ord_pow;
+  simp only [h, ↓reduceIte, proof_in_Class];
+theorem ord_pow_set1 (α) : (trans_rec_func (ord_pow_h α) (succ_set s0))[[s0]] = succ_set s0 :=
+  trans_func_rec1
+theorem ord_pow_set3 (α) (β : ordinal) : β ∈ K2 →
+  (trans_rec_func (ord_pow_h α) (succ_set s0))[[β.val]] =
+  ∪({(trans_rec_func (ord_pow_h α) (succ_set s0))[[γ.val]] // γ o∈ β}) := trans_func_rec3
+
+theorem ord_pow_is_ord2 (α β : ordinal) :
+  Ord(trans_rec_func (ord_pow_h α) (succ_set s0)[[β.val]]) := by
+  apply ordinal.induction β; intro β hg;
+  cases k12 β with
+  | inl h =>
+    cases h with
+    | inl h1 => rw [h1, o0_eq_s0, ord_pow_set1]; exact o1.prop;
+    | inr h1 =>
+      rcases h1 with ⟨δ, h1⟩; subst β;
+      have ho := hg _ ord_lt_succ;
+      rw [trans_func_rec2];
+      have hz : trans_rec_func (ord_pow_h α) (succ_set s0)[[δ.val]] =
+        (⟨trans_rec_func (ord_pow_h α) (succ_set s0)[[δ.val]], ho⟩ : ordinal).val;
+        · rfl;
+      rw [hz, ord_pow_h_value];
+      exact ord_mul_is_ord _ α;
+  | inr h =>
+    rw [ord_pow_set3]; swap; · assumption;
+    apply ord_class_union_ordinal;
+    intro x hx; rw [mem_ordinal_replacement0] at hx;
+    · rcases hx with ⟨y, h1, h2⟩; rw [h2];
+      have hy := ord_element_ord' β.val y.val β.prop h1;
+      have hc : y < β; · exact h1;
+      exact hg _ hc;
+    intro u v w ⟨h1, h2⟩; aesop;
+theorem ord_pow_is_ord (α β : ordinal) : Ord((ord_pow α)[[β.val]]) := by
+  by_cases h : α = o0;
+  · subst α; by_cases h0 : β = o0; · subst β; rw [o0_eq_s0, ord_pow_set00]; exact o1.prop;
+    convert_to Ord(s0); · apply ord_pow_set01; intro h; apply h0; exact Subtype.ext h;
+    exact o0.prop;
+  rw [ord_pow_setn0 h]; exact ord_pow_is_ord2 _ _;
+
+noncomputable instance ordinal.pow : Pow ordinal ordinal :=
+⟨ fun α β => ⟨(ord_pow α)[[β.val]], ord_pow_is_ord α β⟩ ⟩
+
+lemma ord_pow00 : o0 ^ o0 = o1 := Subtype.ext ord_pow_set00
+@[simp] theorem ord_pow01 {α} (h : α ≠ o0) : o0 ^ α = o0 :=
+  Subtype.ext (ord_pow_set01 fun s ↦ h (Subtype.ext s))
+@[simp] theorem ord_pow1 {α} : α ^ o0 = o1 := by
+  by_cases h : α = o0; · subst α; exact ord_pow00;
+  unfold_projs; apply Subtype.ext; simp only;
+  unfold ord_pow; simp only [h, ↓reduceIte]; exact ord_pow_set1 α;
+theorem ord_pow2 {α β : ordinal} : α ^ succ β = α ^ β * α := by
+  by_cases h : α = o0;
+  · subst α; simp only [ord_mul1];
+    exact Subtype.ext (ord_pow_set01 fun s ↦ peano3 _ (Subtype.ext s));
+  have ho : ∀ {α β : ordinal}, (α ^ β).val = (ord_pow α)[[β.val]] := rfl;
+  apply Subtype.ext; rw [ho]; conv => lhs; rw [ord_pow_setn0 h];
+  rw [trans_func_rec2];
+  have h2 := ord_pow_h_value α (⟨value (trans_rec_func (ord_pow_h α) (succ_set s0)) β.val,
+    ord_pow_is_ord2 _ _⟩); unfold_projs at h2; simp only at h2;
+  conv => lhs; unfold_projs; erw [h2]; simp only;
+  unfold_projs; unfold ord_pow; simp only [h, ↓reduceIte];
+theorem ord_pow3 {α β : ordinal} : α ≠ o0 → β ∈ K2 → α ^ β = ⋃(γ oo∈ β, α ^ γ) := by
+  intro h0 h; apply Subtype.ext; unfold_projs; simp only;
+  unfold ord_pow; simp only [h0, ↓reduceIte];
+  erw [←ordinal_union_axiom, ←ord_pow_set3 _ _ h]; rfl;
+
+@[simp] theorem ord_one_pow {α : ordinal} : o1 ^ α = o1 := by
+  have h0 : o1 ≠ o0;
+  · intro h; have h1 := @ord_lt_succ o0; rw [←o1, h] at h1; exact belong_to_self h1;
+  apply ordinal.induction α; intro α h;
+  cases k12 α with
+  | inl h1 => cases h1 with
+    | inl => subst α; simp;
+    | inr h1 =>
+      rcases h1 with ⟨β, h1⟩; subst α; have h1 := h _ ord_lt_succ;
+      rw [ord_pow2, h1]; simp;
+  | inr h1 =>
+    rw [ord_pow3 h0 h1, ordinal_union_replace h];
+    apply Subtype.ext; rw [←ordinal_union_axiom];
+    rw [ordinal_replacement_const]; · exact union_one_element_set;
+    exact ord_ne_0_gt_iff.2 (ord_k2_gt_0 h1);
+
+theorem ord_pow_gt_0 {α β : ordinal} : o0 < α → o0 < α ^ β := by
+  intro h0; apply ordinal.induction β; intro β h;
+  cases k12 β with
+  | inl h1 => cases h1 with
+    | inl => subst β; simp only [ord_pow1]; exact ord_lt_succ;
+    | inr h1 =>
+      rcases h1 with ⟨γ, h1⟩; subst β; rw [ord_pow2];
+      have h2 := h _ ord_lt_succ; rw [ord_succ_belong_le_iff] at h2;
+      apply ord_lt_le_trans h0; conv => lhs; rw [←@ord_one_mul α];
+      exact ord_le_right_mul h2;
+  | inr h1 =>
+    rw [ord_pow3 (ord_ne_0_gt_iff.2 h0) h1]; apply ord_lt_le_trans ord_lt_succ;
+    rw [←o1, ←ord_pow1]; apply ord_union_le_sup; exact ord_k2_gt_0 h1;
+theorem ord_lt_left_pow {α β γ : ordinal} : o1 < γ → α < β → γ ^ α < γ ^ β := by
+  intro h0 h1; have hh : ∀ {α : ordinal}, γ ^ α < γ ^ (succ α);
+  · intro α; have h2 := ord_lt_left_mul.1 ⟨@ord_pow_gt_0 _ α (ord_lt_trans ord_lt_succ h0), h0⟩;
+    simp only [o1, ord_mul2, ord_mul1, ord_zero_add] at h2; rw [ord_pow2]; assumption;
+  have h1 := ord_sub (ord_succ_belong_le_iff.1 h1); rcases h1 with ⟨β', h1, _⟩;
+  subst β; apply ordinal.induction β'; intro β h; cases k12 β with
+  | inl h2 => cases h2 with
+    | inl =>
+      subst β; simp only [ord_add1, gt_iff_lt]; exact hh;
+    | inr h2 =>
+      rcases h2 with ⟨δ, _⟩; subst β; rw [ord_add2];
+      apply ord_lt_trans (h _ ord_lt_succ); exact hh;
+  | inr h2 =>
+    have b1 := @ord_add_k2_in_k2 (succ α) _ h2;
+    rw [ord_pow3 (ord_ne_0_gt_iff.2 (ord_lt_trans ord_lt_succ h0)) b1];
+    apply ord_lt_le_trans hh; apply ord_union_le_sup;
+    conv => lhs; rw [←@ord_add1 (succ α)];
+    apply ord_lt_left_add; exact ord_k2_gt_0 h2;
+theorem ord_lt_left_pow_iff {α β γ : ordinal} : o1 < γ → (α < β ↔ γ ^ α < γ ^ β) := by
+  intro h; constructor; · exact ord_lt_left_pow h;
+  intro h1; rw [←ord_nle] at h1; rw [←ord_nle]; intro h0; apply h1;
+  rw [ord_le] at h0; rw [ord_le]; cases h0 with
+  | inl h0 => left; exact ord_lt_left_pow h h0;
+  | inr => subst α; simp only [lt_self_iff_false, or_true];
+theorem ord_le_left_pow_iff {α β γ : ordinal} : o1 < γ → (α ≤ β ↔ γ ^ α ≤ γ ^ β) := by
+  intro h1; rw [←ord_nlt, ←ord_nlt]; have h := @ord_lt_left_pow_iff β α _ h1;
+  revert h; aesop;
+theorem ord_le_left_pow {α β γ : ordinal} : o0 < γ → α ≤ β → γ ^ α ≤ γ ^ β := by
+  intro h; rw [ord_succ_belong_le_iff, ←o1, ord_le] at h; cases h with
+  | inl h => exact (ord_le_left_pow_iff h).1;
+  | inr => subst γ; simp;
+
+theorem ord_lt_le_right_pow {α β γ : ordinal} : α < β → α ^ γ ≤ β ^ γ := by
+  intro h; apply ordinal.induction γ; intro γ;
+  cases k12 γ with
+  | inl h1 => cases h1 with
+    | inl => subst γ; simp;
+    | inr h1 =>
+      rcases h1 with ⟨δ, h1⟩; subst γ; simp only [ord_pow2]; intro h1;
+      have h2 : o0 < β ^ δ := ord_pow_gt_0 (ord_le_lt_trans ord_ge_0 h);
+      apply ord_lt_le;
+      exact ord_le_lt_trans (ord_le_right_mul (h1 _ ord_lt_succ))
+        (ord_lt_left_mul.1 ⟨h2, h⟩);
+  | inr h1 =>
+    intro h0; by_cases h2 : α = o0;
+    · subst α; rw [ord_pow01 (ord_ne_0_gt_iff.2 (ord_k2_gt_0 h1))]; exact ord_ge_0;
+    have h3 : ¬β = o0;
+    · rw [ord_ne_0_gt_iff] at *; exact ord_lt_trans h2 h;
+    rw [ord_pow3 h2 h1, ord_pow3 h3 h1]; apply ord_union_sup_le;
+    intro δ hd; apply ord_le_trans (h0 _ hd); exact ord_union_le_sup _ hd;
+theorem ord_le_right_pow {α β γ : ordinal} : α ≤ β → α ^ γ ≤ β ^ γ := by
+  intro h; rw [ord_le] at h; cases h with
+  | inl h => exact ord_lt_le_right_pow h;
+  | inr h => rw [h];
+theorem ord_lt_right_pow_succ {α β γ : ordinal} : α < β → α ^ (succ γ) < β ^ (succ γ) := by
+  intro h; have h1 := @ord_lt_le_right_pow _ _ γ h;
+  have h2 : o0 < β ^ γ := ord_pow_gt_0 (ord_le_lt_trans ord_ge_0 h);
+  simp only [ord_pow2]; exact ord_le_lt_trans (ord_le_right_mul h1)
+        (ord_lt_left_mul.1 ⟨h2, h⟩)
+
+theorem ord_le_pow {α β : ordinal} : o1 < α → β ≤ α ^ β := by
+  intro h; apply ordinal.induction β; intro β h2;
+  cases k12 β with
+  | inl h1 => cases h1 with
+    | inl => subst β; exact ord_ge_0;
+    | inr h1 =>
+      rcases h1 with ⟨δ, h1⟩; subst β;
+      apply ord_le_trans (ord_succ_le_succ (h2 _ ord_lt_succ));
+      apply ord_succ_belong_le; exact ord_lt_left_pow h ord_lt_succ;
+  | inr h1 =>
+    rw [ord_pow3 (ord_ne_0_gt_iff.2 (ord_lt_trans ord_lt_succ h)) h1];
+    intro γ hg; let γ : ordinal := ⟨γ, ord_element_ord _ _ hg⟩;
+    convert_to γ < _; · rfl;
+    apply ord_union_le_sup (succ γ) (ord_k2_succ_in h1 hg);
+    exact (ord_lt_le_trans ord_lt_succ (h2 _ (ord_k2_succ_in h1 hg)));
+theorem ord_lt_k2_pow {α β γ : ordinal} : β ∈ K2 → γ < α ^ β → ∃ δ, δ < β ∧ γ < α ^ δ := by
+  intro h1 h2; have h3 : α ≠ o0;
+  · by_contra; subst α; rw [ord_pow01 (ord_ne_0_gt_iff.2 (ord_k2_gt_0 h1))] at h2;
+    exact belong_to_self (ord_lt_le_trans h2 ord_ge_0);
+  rw [ord_pow3 h3 h1] at h2; exact ord_lt_union h2;
+
+theorem ord_log {α β : ordinal} : o1 < α → o0 < β → ∃!δ, α ^ δ ≤ β ∧ β < α ^ (succ δ) := by
+  intro ha hb; have h0 : ∃ γ : ordinal, β < α ^ γ;
+  · use succ β; apply ord_le_lt_trans (ord_le_pow ha); exact ord_lt_left_pow ha ord_lt_succ;
+  rcases minimal_ordinal h0 with ⟨γ, h1, h2⟩;
+  have ha1 : α ≠ o0 := ord_ne_0_gt_iff.2 (ord_lt_trans ord_lt_succ ha);
+  have h3 : γ ∉ K2;
+  · by_contra h3; rw [ord_pow3 ha1 h3] at h1;
+    rcases ord_lt_union h1 with ⟨δ, h4, h5⟩; have h6 := h2 _ h5;
+    exact belong_to_self (ord_lt_le_trans h4 h6);
+  rw [ord_in_k2] at h3; simp only [not_exists, not_and, not_forall, not_not] at h3; have h4 : _;
+  · apply h3; intro h3; subst γ; simp only [ord_pow1] at h1; exact ord_no_between_succ ⟨hb, h1⟩;
+  rcases h4 with ⟨δ, h4⟩; subst γ; use δ; simp only;
+  have h4 : α ^ δ ≤ β; · rw [←ord_nlt]; intro h4; exact ord_nlt.2 (h2 _ h4) ord_lt_succ;
+  use ⟨h4, h1⟩; intro γ ⟨g1, g2⟩;
+  suffices g0 : ∀ δ γ : ordinal, δ < γ → β < α ^ (succ δ) → α ^ γ ≤ β → False;
+  · apply ord_le_antisymm <;> rw [←ord_nlt] <;> intro d <;>
+    apply g0 _ _ d <;> assumption';
+  intro δ γ g3 h1 g1; rw [ord_succ_belong_le_iff] at g3;
+  exact belong_to_self (calc
+    β < α ^ succ δ        := h1
+    _ ≤ α ^ γ             := (ord_le_left_pow_iff ha).1 g3
+    _ ≤ β                 := g1
+  )
+
+theorem ord_pow_k2_in_k2 {α β : ordinal} : o1 < α → β ∈ K2 → α ^ β ∈ K2 := by
+  intro h1 h2; cases k12 _ with
+  | inr => assumption;
+  | inl h => exfalso; cases h with
+    | inl h =>
+      revert h; simp only [imp_false]; rw [ord_ne_0_gt_iff]; apply ord_pow_gt_0;
+      exact ord_lt_trans ord_lt_succ h1;
+    | inr h =>
+      rcases h with ⟨δ, h⟩;
+      have h3 := ord_pow3 (ord_ne_0_gt_iff.2 (ord_lt_trans ord_lt_succ h1)) h2;
+      rw [h3] at h; have d := @ord_lt_succ δ; rw [←h] at d;
+      rcases ord_lt_union d with ⟨γ, d1, d2⟩;
+      exact belong_to_self (calc
+        succ δ  ≤ α ^ γ         := ord_succ_belong_le d2
+        _       < α ^ (succ γ)  := ord_lt_left_pow h1 ord_lt_succ
+        _       < α ^ β         := ord_lt_left_pow h1 (ord_k2_succ_in h2 d1)
+        _       = succ δ        := by rw [h3, h]
+      )
+theorem ord_k2_pow_in_k2 {α β : ordinal} : α ∈ K2 → o0 < β → α ^ β ∈ K2 := by
+  intro h1 h2; cases k12 β with
+  | inr h => exact ord_pow_k2_in_k2 (ord_k2_succ_in h1 (ord_k2_gt_0 h1)) h;
+  | inl h => cases h with
+    | inl h => subst β; exfalso; exact belong_to_self h2;
+    | inr h =>
+      rcases h with ⟨γ, h⟩; subst β; rw [ord_pow2]; exact ord_mul_k2_in_k2
+        (ord_ne_0_gt_iff.2 (ord_pow_gt_0 (ord_k2_gt_0 h1))) h1;
+
+theorem ord_pow_add {α β γ : ordinal} : α ^ (β + γ) = α ^ β * α ^ γ := by
+  apply ordinal.induction γ; intro γ h; cases k12 γ with
+  | inl h1 => cases h1 with
+    | inl => subst γ; simp only [ord_add1, ord_pow1, o1, ord_mul2, ord_mul1, ord_zero_add];
+    | inr h1 =>
+      rcases h1 with ⟨δ, h1⟩; subst γ;
+      rw [ord_add2, ord_pow2, ord_pow2, h _ ord_lt_succ]; symm; exact ord_mul_assoc;
+  | inr h1 =>
+    by_cases h2 : α = o0;
+    · subst α; rw [ord_pow01 (ord_ne_0_gt_iff.2 (ord_k2_gt_0 h1))];
+      rw [ord_pow01 (ord_ne_0_gt_iff.2 (ord_k2_gt_0 (ord_add_k2_in_k2 h1)))];
+      simp only [ord_mul1];
+    have h2' := h2; rw [ord_ne_0_gt_iff, ord_succ_belong_le_iff, ←o1, ord_le] at h2;
+    cases h2 with
+    | inr => subst α; simp only [ord_one_pow, ord_one_mul];
+    | inl h2 =>
+      have h3 := ord_pow_k2_in_k2 h2 h1; rw [ord_mul3 h3, ord_pow3 h2' (ord_add_k2_in_k2 h1)];
+      apply ord_le_antisymm;
+      · rw [ord_le_all_lt]; intro d d1; rcases ord_lt_union d1 with ⟨η, d1, d2⟩;
+        apply ord_lt_le_trans d2; by_cases d3 : η < β;
+        · exact ord_lt_le (calc
+          α ^ η < α ^ β       := ord_lt_left_pow h2 d3
+          _     = α ^ β * o1  := by simp [o1]
+          _     ≤ _           := ord_union_le_sup o1 (ord_k2_succ_in h3 (ord_k2_gt_0 h3)))
+        rw [ord_nlt] at d3; rcases ord_sub d3 with ⟨δ, d3, _⟩;
+        subst η; rw [←ord_lt_add_left_elim] at d1; rw [h _ d1];
+        exact ord_union_le_sup _ (ord_lt_left_pow h2 d1);
+      rw [ord_le_all_lt]; intro d d1; rcases ord_lt_union d1 with ⟨δ, d1, d2⟩;
+      apply ord_lt_le_trans d2; rcases ord_lt_k2_pow h1 d1 with ⟨τ, d3, d4⟩;
+      apply ord_lt_le; apply ord_lt_le_trans;
+      · rw [←ord_lt_left_mul]; use ord_pow_gt_0 (ord_ne_0_gt h2');
+      rw [←h _ d3]; apply ord_union_le_sup; exact ord_lt_left_add d3;
+theorem ord_pow_mul {α β γ : ordinal} : α ^ (β * γ) = (α ^ β) ^ γ := by
+  apply ordinal.induction γ; intro γ h; cases k12 γ with
+  | inl h1 => cases h1 with
+    | inl => subst γ; simp only [ord_mul1, ord_pow1];
+    | inr h1 =>
+      rcases h1 with ⟨δ, h1⟩; subst γ;
+      rw [ord_mul2, ord_pow2, ord_pow_add, h _ ord_lt_succ];
+  | inr h1 =>
+    by_cases h2 : β = o0;
+    · subst β; simp only [ord_zero_mul, ord_pow1, ord_one_pow];
+    have h3 := ord_mul_k2_in_k2 h2 h1; by_cases h4 : α = o0;
+    · subst α; rw [ord_pow01 (ord_ne_0_gt_iff.2 (ord_k2_gt_0 h3))];
+      rw [ord_pow01 h2]; rw [ord_pow01 (ord_ne_0_gt_iff.2 (ord_k2_gt_0 h1))];
+    have h5 := ord_ne_0_gt_iff.2 (@ord_pow_gt_0 _ β (ord_ne_0_gt h4));
+    rw [ord_pow3 h4 h3, ord_pow3 h5 h1];
+    apply ord_le_antisymm <;> rw [ord_le_all_lt] <;> intro d d1 <;>
+    rcases ord_lt_union d1 with ⟨δ, d1, d2⟩ <;> apply ord_lt_le_trans d2;
+    · rcases ord_div h1 d1 with ⟨η, d3, d4⟩; exact (calc
+        _ ≤ α ^ (β * η)     := ord_le_left_pow (ord_ne_0_gt h4) (ord_lt_le d4)
+        _ = (α ^ β) ^ η     := h _ d3
+        _ ≤ _               := ord_union_le_sup _ d3)
+    rw [←h _ d1]; apply ord_union_le_sup; apply ord_lt_left_mul.1;
+    use ord_ne_0_gt h2;
 
 end zfset
