@@ -125,26 +125,26 @@ theorem card_o0_eq_s0 [ac : Fact AC] {a : set} : |a| = o0 ↔ a = s0 := by
   · rw [h1] at h; symm at h; exact eqv_s0_eq_s0 h;
   subst a; simp only [card_0];
 
-theorem eqv_succ_set_sup_omega {a} (h : a s≅ succ_set a) : ∃ b, b s⊆ a ∧ b s≅ ω.val := by
-  rcases eqv_symm h with ⟨H, h1, h2⟩;
-  rcases @omega_recursion H (H[[a]]) with ⟨f, ⟨h3, h4, h5⟩, _⟩;
-  use W(f); constructor;
-  · intro x; rw [has_function.proof_range]; intro ⟨y, x1⟩;
-    have y1 := (has_function.proof_domain _).2 ⟨_, x1⟩;
-    have y1' := y1; rw [←h3.2] at y1;
-    let m : ordinal := ⟨y, ord_element_ord _ _ y1⟩; rw [←value_func h3.1.2 x1];
-    have y2 : y = m.val := rfl; rw [y2]; apply nat_induction (fun m ↦ f[[m.val]] ∈ a);
-    · rw [h4]; conv => rhs; rw [←h2];
-      have a1 : a ∈ D(H); · rw [←h1.2]; simp only [succ_set, binary_union_def,
-        element_in_one_element_set, or_true];
-      rw [has_function.proof_range]; use a; exact value_func2 h1.1.2.1 a1;
-    · intro i i1 i2; rw [h5 _ i1, ←h2, has_function.proof_range]; use f[[i.val]];
-      have a1 : f[[i.val]] ∈ D(H);
-      · rw [←h1.2]; simp only [succ_set, binary_union_def, i2, true_or];
-      exact value_func2 h1.1.2.1 a1;
-    exact y1;
-  use f⁻¹; constructor; constructor;
-  · use inverse_is_relation; constructor; swap; · rw [rel_inv_inv_eq h3.1.1]; use h3.1.2;
-    intro u v w ⟨hv, h2⟩; rw [pair_in_inverse] at *;
+-- theorem eqv_succ_set_sup_omega {a} (h : a s≅ succ_set a) : ∃ b, b s⊆ a ∧ b s≅ ω.val := by
+--   rcases eqv_symm h with ⟨H, h1, h2⟩;
+--   rcases @omega_recursion H (H[[a]]) with ⟨f, ⟨h3, h4, h5⟩, _⟩;
+--   use W(f); constructor;
+--   · intro x; rw [has_function.proof_range]; intro ⟨y, x1⟩;
+--     have y1 := (has_function.proof_domain _).2 ⟨_, x1⟩;
+--     have y1' := y1; rw [←h3.2] at y1;
+--     let m : ordinal := ⟨y, ord_element_ord _ _ y1⟩; rw [←value_func h3.1.2 x1];
+--     have y2 : y = m.val := rfl; rw [y2]; apply nat_induction (fun m ↦ f[[m.val]] ∈ a);
+--     · rw [h4]; conv => rhs; rw [←h2];
+--       have a1 : a ∈ D(H); · rw [←h1.2]; simp only [succ_set, binary_union_def,
+--         element_in_one_element_set, or_true];
+--       rw [has_function.proof_range]; use a; exact value_func2 h1.1.2.1 a1;
+--     · intro i i1 i2; rw [h5 _ i1, ←h2, has_function.proof_range]; use f[[i.val]];
+--       have a1 : f[[i.val]] ∈ D(H);
+--       · rw [←h1.2]; simp only [succ_set, binary_union_def, i2, true_or];
+--       exact value_func2 h1.1.2.1 a1;
+--     exact y1;
+--   use f⁻¹; constructor; constructor;
+--   · use inverse_is_relation; constructor; swap; · rw [rel_inv_inv_eq h3.1.1]; use h3.1.2;
+--     intro u v w ⟨hv, h2⟩; rw [pair_in_inverse] at *;
 
 end zfset
