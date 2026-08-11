@@ -26,7 +26,7 @@ by
   rw [h];
   simp;
 
-def Class : Type := set → Prop
+abbrev Class : Type := set → Prop
 
 def set.to_Class (a : set) : Class := fun x : set => x ∈ a
 noncomputable instance set_to_class_coe : Coe set Class := ⟨ set.to_Class ⟩
@@ -145,6 +145,8 @@ by
   use x;
   rw [←extensionality_belong]; intro a;
   exact h a;
+theorem class_belong {α : Type u} [s : has_belong α] {A : Class} {b : α} :
+A ∈ b ↔ ∃ a : set, a ∈ b ∧ ∀ y : set, y ∈ a ↔ y ∈ A := by rfl
 
 theorem set_to_class_belong {α : Type u} [s : has_belong α] {a : set} {b : α} :
 a.to_Class ∈ b ↔ a ∈ b :=
@@ -670,6 +672,10 @@ by
   intro h3;
   rw [h3] at h;
   exact h.2 h.1;
+
+theorem binary_union_subseteq [has_belong α] [has_belong β] [has_binary_union α]
+{a b : α} {c : β} : a ∪ b s⊆ c ↔ a s⊆ c ∧ b s⊆ c := by
+  simp [subseteq, ←forall_and, or_imp]
 
 -- instance subseteq_is_le {α : Type u} [s : has_belong α] : LE α :=
 --   ⟨subseteq⟩

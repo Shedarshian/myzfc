@@ -547,10 +547,38 @@ noncomputable def set_separation : set → (set → Prop) → set :=
   fun a (f : Class) => a ∩ f
 notation "{" x " s∈ " a " // " f "}" => (set_separation a (fun x => f))
 notation "{" y " // " x " s∈ " a " // " f "}" => {y // x s∈ {x s∈ a // f}}
+notation "s⟨" a ", " b ", " c "⟩" => s⟨a, s⟨b, c⟩ ⟩
+syntax "{" term " // " "s⟨" ident "," ident "⟩" " p∈ " term "}" : term
+macro_rules
+| `({$y // s⟨$a:ident, $b:ident⟩ p∈ $x}) =>
+    `(make_replacement $x (fun _x _y =>
+      ∃ ($a:ident : set) ($b:ident : set), _x = s⟨$a, $b⟩ ∧ _y = $y))
+syntax "{" term " // " "s⟨" ident "," ident "," ident "⟩" " p∈ " term "}" : term
+macro_rules
+| `({$y // s⟨$a:ident, $b:ident, $c:ident⟩ p∈ $x}) =>
+    `(make_replacement $x (fun _x _y =>
+      ∃ ($a:ident : set) ($b:ident : set) ($c:ident : set), _x = s⟨$a, s⟨$b, $c⟩ ⟩ ∧ _y = $y))
+
+theorem separation_eq {a : set} {f g : set → Prop} :
+  {x s∈ a // f x} = {x s∈ a // g x} ↔ ∀ x s∈ a, f x ↔ g x := by
+  conv => lhs; rw [←extensionality_belong];
+  apply forall_congr'; intro x; simp [set_separation, proof_in_Class];
 
 theorem replacement_notation_def {a y : set} {f : set → set} :
   y ∈ {f x // x s∈ a} ↔ ∃ x s∈ a, y = f x := by
   rw [axiom_of_replacement]; simp;
+theorem replacement_pair_def {y : set} {f : set → set → set} :
+  y ∈ {f a b // s⟨a, b⟩ p∈ x} ↔ ∃ a b : set, s⟨a, b⟩ ∈ x ∧ y = f a b := by
+  rw [axiom_of_replacement]; · simp;
+  simp only [and_imp, forall_exists_index]; intro u v w a b _;
+  subst u; simp only [ordered_pair_eq_iff, and_imp, forall_apply_eq_imp_iff, forall_eq'];
+  intro _ _; subst v w; rfl;
+theorem replacement_wpair_def {y : set} {f : set → set → set → set} :
+  y ∈ {f a b c // s⟨a, b, c⟩ p∈ x} ↔ ∃ a b c : set, s⟨a, b, c⟩ ∈ x ∧ y = f a b c := by
+  rw [axiom_of_replacement]; · simp;
+  simp only [and_imp, forall_exists_index]; intro u v w a b c _;
+  subst u; simp only [ordered_pair_eq_iff, and_imp, forall_apply_eq_imp_iff₂,
+    forall_apply_eq_imp_iff, forall_eq']; intro _ _; subst v w; rfl;
 
 theorem restrict_intersection [has_belong α] [has_intersection α Class]
   [has_function α] [has_belong β] [has_belong γ] [has_intersection β γ]
